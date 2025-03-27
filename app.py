@@ -1,10 +1,10 @@
-﻿import yfinance as yf
-import pandas as pd
+﻿import pandas as pd
 import schedule
 import time
 import logging
 from threading import Thread
 from flask import Flask, render_template
+from tvdatafeed import TvDatafeed, Interval
 
 # Thiết lập logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Danh sách coin quan tâm (định dạng của Yahoo Finance)
+# Danh sách coin quan tâm (định dạng của TradingView)
 COIN_LIST = [
-    {"symbol": "BTCUSDT", "yahoo_symbol": "BTC-USD"},
-    {"symbol": "ETHUSDT", "yahoo_symbol": "ETH-USD"},
-    {"symbol": "XRPUSDT", "yahoo_symbol": "XRP-USD"},
-    {"symbol": "SOLUSDT", "yahoo_symbol": "SOL-USD"}
+    {"symbol": "BTCUSDT", "tv_symbol": "BTCUSDT", "exchange": "BINANCE"},
+    {"symbol": "ETHUSDT", "tv_symbol": "ETHUSDT", "exchange": "BINANCE"},
+    {"symbol": "XRPUSDT", "tv_symbol": "XRPUSDT", "exchange": "BINANCE"},
+    {"symbol": "SOLUSDT", "tv_symbol": "SOLUSDT", "exchange": "BINANCE"}
 ]
 
 # Lưu trữ vùng hỗ trợ và kháng cự
@@ -36,27 +36,47 @@ breakout_alerts = []
 # Lưu trữ thời gian cập nhật
 last_updated = "Chưa cập nhật"
 
-# Hàm lấy dữ liệu nến từ Yahoo Finance
-def get_support_resistance(coin_symbol, yahoo_symbol, timeframe="4h", limit=100):
+# Khởi tạo TvDatafeed với thông tin đăng nhập
+try:
+    tv = TvDatafeed(
+        username="doluongdudz@gmail.com",
+        password="DLDU01012000",
+        chromedriver_path=None  # Nếu cần, bạn có thể chỉ định đường dẫn đến chromedriver
+    )
+    logger.info("Đã kết nối thành công với TradingView")
+except Exception as e:
+    logger.error(f"Lỗi khi kết nối với TradingView: {e}")
+    tv = None
+
+# Hàm lấy dữ liệu nến từ TradingView
+def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h", limit=100):
     try:
-        logger.info(f"Đang lấy dữ liệu nến cho {coin_symbol} ({yahoo_symbol})")
-        ticker = yf.Ticker(yahoo_symbol)
-        df = ticker.history(period="1mo", interval="4h")  # Lấy dữ liệu 1 tháng, khung 4h
-        if df.empty:
+        if tv is None:
+            raise Exception("Không thể kết nối với TradingView")
+        
+        logger.info(f"Đang lấy dữ liệu nến cho {coin_symbol} ({tv_symbol})")
+        interval = Interval.in_4_hour if timeframe == "4h" else Interval.in_4_hour
+        df = tv.get_hist(
+            symbol=tv_symbol,
+            exchange=exchange,
+            interval=interval,
+            n_bars=limit
+        )
+        if df is None or df.empty:
             logger.warning(f"Không có dữ liệu nến cho {coin_symbol}")
             return None, None, None, None, None
 
+        # Đổi tên cột để khớp với logic hiện tại
         df = df.reset_index()
         df = df.rename(columns={
-            'Date': 'timestamp',
-            'Open': 'open',
-            'High': 'high',
-            'Low': 'low',
-            'Close': 'close',
-            'Volume': 'volume'
+            'datetime': 'timestamp',
+            'open': 'open',
+            'high': 'high',
+            'low': 'low',
+            'close': 'close',
+            'volume': 'volume'
         })
         df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
-        df = df.tail(limit)
 
         support_nearest = df['low'].rolling(window=20).min().iloc[-1]
         resistance_nearest = df['high'].rolling(window=20).max().iloc[-1]
@@ -74,23 +94,193 @@ def get_support_resistance(coin_symbol, yahoo_symbol, timeframe="4h", limit=100)
         logger.error(f"Lỗi khi lấy dữ liệu nến cho {coin_symbol}: {e}")
         return None, None, None, None, None
 
-# Hàm lấy giá hiện tại từ Yahoo Finance
-def get_current_price(yahoo_symbol):
+# Hàm nhận diện mẫu hình nến Nhật và xác nhận xu hướng
+def identify_candlestick_pattern(df, price_trend):
+    if len(df) < 3:
+        return False
+    
+    latest = df.iloc[0]
+    prev1 = df.iloc[1] if len(df) > 1 else None
+    prev2 = df.iloc[2] if len(df) > 2 else None
+
+    open_price = latest['open']
+    close_price = latest['close']
+    high_price = latest['high']
+    low_price = latest['low']
+    body_size = abs(open_price - close_price)
+    upper_shadow = high_price - max(open_price, close_price)
+    lower_shadow = min(open_price, close_price) - low_price
+
+    candle_trend = None
+
+    if body_size < (high_price - low_price) * 0.15 and abs(upper_shadow - lower_shadow) < body_size * 0.7:
+        candle_trend = None
+    if lower_shadow > body_size * 1.5 and upper_shadow < body_size * 0.5 and close_price > open_price:
+        candle_trend = "bullish"
+    if upper_shadow > body_size * 1.5 and lower_shadow < body_size * 0.5 and close_price < open_price:
+        candle_trend = "bearish"
+    if prev1 is not None:
+        prev1_open = prev1['open']
+        prev1_close = prev1['close']
+        if close_price > open_price and prev1_close < prev1_open and open_price <= prev1_close and close_price >= prev1_open:
+            candle_trend = "bullish"
+        if close_price < open_price and prev1_close > prev1_open and open_price >= prev1_close and close_price <= prev1_open:
+            candle_trend = "bearish"
+    if prev2 is not None:
+        prev1_open = prev1['open']
+        prev1_close = prev1['close']
+        prev1_high = prev1['high']
+        prev1_low = prev1['low']
+        prev2_open = prev2['open']
+        prev2_close = prev2['close']
+        if prev2_close < prev2_open and abs(prev1_close - prev1_open) < (prev1_high - prev1_low) * 0.5 and close_price > open_price and close_price > prev2_close:
+            candle_trend = "bullish"
+        if prev2_close > prev2_open and abs(prev1_close - prev1_open) < (prev1_high - prev1_low) * 0.5 and close_price < open_price and close_price < prev2_close:
+            candle_trend = "bearish"
+    if prev1 is not None:
+        prev1_open = prev1['open']
+        prev1_close = prev1['close']
+        prev1_body_size = abs(prev1_open - prev1_close)
+        if prev1_close < prev1_open and close_price > open_price and body_size < prev1_body_size * 0.5 and open_price > prev1_close and close_price < prev1_open:
+            candle_trend = "bullish"
+        if prev1_close > prev1_open and close_price < open_price and body_size < prev1_body_size * 0.5 and open_price < prev1_close and close_price > prev1_open:
+            candle_trend = "bearish"
+    if prev2 is not None and prev1 is not None:
+        prev1_open = prev1['open']
+        prev1_close = prev1['close']
+        prev2_open = prev2['open']
+        prev2_close = prev2['close']
+        if (close_price > open_price and prev1_close > prev1_open and prev2_close > prev2_open and
+            close_price > prev1_close and prev1_close > prev2_close):
+            candle_trend = "bullish"
+        if (close_price < open_price and prev1_close < prev1_open and prev2_close < prev2_open and
+            close_price < prev1_close and prev1_close < prev2_close):
+            candle_trend = "bearish"
+
+    if candle_trend is None:
+        return False
+    return candle_trend == price_trend
+
+# Hàm nhận diện mẫu hình giá phức tạp
+def identify_price_pattern(df):
+    if len(df) < 20:
+        return None, 0, None, None, None, None
+    
+    highs = df['high'].values
+    lows = df['low'].values
+    closes = df['close'].values
+    
+    def check_head_and_shoulders(highs, lows, closes):
+        if len(highs) < 20:
+            return None, 0, None, None, None, None
+        head_level = None
+        for i in range(5, len(highs) - 5):
+            left_shoulder = max(highs[i-5:i])
+            head = highs[i]
+            right_shoulder = max(highs[i+1:i+6])
+            if head > left_shoulder and head > right_shoulder and abs(left_shoulder - right_shoulder) / head < 0.2:
+                neckline = (min(lows[i-5:i]) + min(lows[i+1:i+6])) / 2
+                similarity = 1.0 if abs(left_shoulder - right_shoulder) / head < 0.1 and closes[0] < neckline else 0.9
+                head_level = head
+                return "Head and Shoulders (Vai-Đầu-Vai)", similarity * 100, neckline, "bearish", head_level, neckline
+        return None, 0, None, None, None, None
+    
+    def check_double_bottom(lows, highs, closes):
+        if len(lows) < 20:
+            return None, 0, None, None, None, None
+        bottom_level = None
+        for i in range(5, len(lows) - 5):
+            left_bottom = min(lows[i-5:i])
+            right_bottom = min(lows[i+1:i+6])
+            if abs(left_bottom - right_bottom) / left_bottom < 0.2:
+                resistance_line = max(highs[i-5:i+6])
+                similarity = 1.0 if abs(left_bottom - right_bottom) / left_bottom < 0.1 and closes[0] > resistance_line else 0.9
+                bottom_level = (left_bottom + right_bottom) / 2
+                return "Double Bottom (Hai Đáy)", similarity * 100, resistance_line, "bullish", bottom_level, resistance_line
+        return None, 0, None, None, None, None
+    
+    def check_double_top(highs, lows, closes):
+        if len(highs) < 20:
+            return None, 0, None, None, None, None
+        top_level = None
+        for i in range(5, len(highs) - 5):
+            left_top = max(highs[i-5:i])
+            right_top = max(highs[i+1:i+6])
+            if abs(left_top - right_top) / left_top < 0.2:
+                support_line = min(lows[i-5:i+6])
+                similarity = 1.0 if abs(left_top - right_top) / left_top < 0.1 and closes[0] < support_line else 0.9
+                top_level = (left_top + right_top) / 2
+                return "Double Top (Hai Đỉnh)", similarity * 100, support_line, "bearish", top_level, support_line
+        return None, 0, None, None, None, None
+    
+    def check_ascending_triangle(highs, lows, closes):
+        if len(highs) < 20:
+            return None, 0, None, None, None, None
+        resistance = max(highs[-20:])
+        support_points = []
+        for i in range(5, len(lows) - 5):
+            if lows[i] == min(lows[i-5:i+5]):
+                support_points.append(lows[i])
+        if len(support_points) >= 2 and all(support_points[i] < support_points[i+1] for i in range(len(support_points)-1)):
+            support = min(support_points)
+            similarity = 1.0 if closes[0] > resistance else 0.9
+            return "Ascending Triangle (Tam Giác Tăng)", similarity * 100, resistance, "bullish", support, resistance
+        return None, 0, None, None, None, None
+    
+    def check_descending_triangle(highs, lows, closes):
+        if len(highs) < 20:
+            return None, 0, None, None, None, None
+        support = min(lows[-20:])
+        resistance_points = []
+        for i in range(5, len(highs) - 5):
+            if highs[i] == max(highs[i-5:i+5]):
+                resistance_points.append(highs[i])
+        if len(resistance_points) >= 2 and all(resistance_points[i] > resistance_points[i+1] for i in range(len(resistance_points)-1)):
+            resistance = max(resistance_points)
+            similarity = 1.0 if closes[0] < support else 0.9
+            return "Descending Triangle (Tam Giác Giảm)", similarity * 100, support, "bearish", support, resistance
+        return None, 0, None, None, None, None
+
+    patterns = [
+        check_head_and_shoulders(highs, lows, closes),
+        check_double_bottom(lows, highs, closes),
+        check_double_top(highs, lows, closes),
+        check_ascending_triangle(highs, lows, closes),
+        check_descending_triangle(highs, lows, closes)
+    ]
+    best_pattern, best_similarity, key_level, trend, pattern_low, pattern_high = max(patterns, key=lambda x: x[1])
+    if best_similarity > 0:
+        return best_pattern, best_similarity, key_level, trend, pattern_low, pattern_high
+    return None, 0, None, None, None, None
+
+# Hàm lấy giá hiện tại từ TradingView
+def get_current_price(tv_symbol, exchange):
     try:
-        logger.info(f"Đang lấy giá hiện tại cho {yahoo_symbol}")
-        ticker = yf.Ticker(yahoo_symbol)
-        price = ticker.info['regularMarketPrice']
-        logger.info(f"Lấy giá hiện tại thành công cho {yahoo_symbol}: {price}")
-        return float(price)
+        if tv is None:
+            raise Exception("Không thể kết nối với TradingView")
+        
+        logger.info(f"Đang lấy giá hiện tại cho {tv_symbol}")
+        df = tv.get_hist(
+            symbol=tv_symbol,
+            exchange=exchange,
+            interval=Interval.in_1_minute,
+            n_bars=1
+        )
+        if df is None or df.empty:
+            logger.warning(f"Không có dữ liệu giá cho {tv_symbol}")
+            return None
+        price = float(df['close'].iloc[-1])
+        logger.info(f"Lấy giá hiện tại thành công cho {tv_symbol}: {price}")
+        return price
     except Exception as e:
-        logger.error(f"Lỗi khi lấy giá hiện tại cho {yahoo_symbol}: {e}")
+        logger.error(f"Lỗi khi lấy giá hiện tại cho {tv_symbol}: {e}")
         return None
 
 # Hàm kiểm tra hợp lưu (chỉ trả về Có/Không)
-def check_confluence(coin_symbol, yahoo_symbol, trend_4h):
+def check_confluence(coin_symbol, tv_symbol, exchange, trend_4h):
     timeframes = ["5m", "15m", "1h", "1d", "1w"]
     for timeframe in timeframes:
-        _, _, _, _, df = get_support_resistance(coin_symbol, yahoo_symbol, timeframe, limit=100)
+        _, _, _, _, df = get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe, limit=100)
         if df is not None:
             _, similarity, _, trend, _, _ = identify_price_pattern(df)
             if similarity >= 80 and trend is not None and trend == trend_4h:
@@ -105,12 +295,13 @@ def daily_analysis():
     logger.info("Bắt đầu phân tích hàng ngày")
     for coin in COIN_LIST:
         coin_symbol = coin["symbol"]
-        yahoo_symbol = coin["yahoo_symbol"]
+        tv_symbol = coin["tv_symbol"]
+        exchange = coin["exchange"]
         try:
-            support_nearest, resistance_nearest, support_strong, resistance_strong, df = get_support_resistance(coin_symbol, yahoo_symbol, "4h", limit=100)
+            support_nearest, resistance_nearest, support_strong, resistance_strong, df = get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", limit=100)
             if df is not None:
                 price_pattern, similarity, key_level, price_trend, pattern_low, pattern_high = identify_price_pattern(df)
-                price = get_current_price(yahoo_symbol)
+                price = get_current_price(tv_symbol, exchange)
                 entry_point = None
                 recommended_entry = None
                 
@@ -125,7 +316,7 @@ def daily_analysis():
                     trend_confirmed = identify_candlestick_pattern(df, price_trend)
                     coin_result += f"Xác nhận xu hướng: {'Có' if trend_confirmed else 'Không'}\n"
                     
-                    has_confluence = check_confluence(coin_symbol, yahoo_symbol, price_trend)
+                    has_confluence = check_confluence(coin_symbol, tv_symbol, exchange, price_trend)
                     coin_result += f"Hợp lưu: {'Có' if has_confluence else 'Không'}\n"
                     
                     probability = 0
@@ -193,9 +384,10 @@ def check_breakout():
     logger.info("Kiểm tra breakout")
     for coin in COIN_LIST:
         coin_symbol = coin["symbol"]
-        yahoo_symbol = coin["yahoo_symbol"]
+        tv_symbol = coin["tv_symbol"]
+        exchange = coin["exchange"]
         try:
-            price = get_current_price(yahoo_symbol)
+            price = get_current_price(tv_symbol, exchange)
             if price is None:
                 continue
             if coin_symbol in SUPPORT_RESISTANCE:
@@ -215,7 +407,7 @@ def check_breakout():
         except Exception as e:
             logger.error(f"Lỗi khi kiểm tra breakout cho {coin_symbol}: {e}")
 
-# Lên lịch và kiểm tra breakout
+# Lên lịch
 schedule.every().day.at("06:00").do(daily_analysis)
 schedule.every(60).seconds.do(check_breakout)
 
@@ -230,8 +422,9 @@ def initialize_support_resistance():
     logger.info("Khởi tạo SUPPORT_RESISTANCE")
     for coin in COIN_LIST:
         coin_symbol = coin["symbol"]
-        yahoo_symbol = coin["yahoo_symbol"]
-        support_nearest, resistance_nearest, _, _, _ = get_support_resistance(coin_symbol, yahoo_symbol, "4h", limit=100)
+        tv_symbol = coin["tv_symbol"]
+        exchange = coin["exchange"]
+        support_nearest, resistance_nearest, _, _, _ = get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", limit=100)
         if support_nearest is not None and resistance_nearest is not None:
             SUPPORT_RESISTANCE[coin_symbol] = (support_nearest, resistance_nearest)
             logger.info(f"Đã khởi tạo SUPPORT_RESISTANCE cho {coin_symbol}: {support_nearest}, {resistance_nearest}")
