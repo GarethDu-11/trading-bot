@@ -1,6 +1,4 @@
-﻿import websocket
-import json
-import requests
+﻿import requests
 import pandas as pd
 import schedule
 import time
@@ -321,33 +319,6 @@ for coin in COIN_LIST:
     if support_nearest is not None and resistance_nearest is not None:
         SUPPORT_RESISTANCE[coin] = (support_nearest, resistance_nearest)
 
-def on_message(ws, message):
-    global breakout_alerts
-    data = json.loads(message)
-    if 'data' in data:
-        coin = data['data'][0]['instId']
-        price = float(data['data'][0]['last'])
-        if coin in SUPPORT_RESISTANCE:
-            support, resistance = SUPPORT_RESISTANCE[coin]
-            if price < support and not BREAKOUT_REPORTED[coin]["support"]:
-                alert = f"CẢNH BÁO: {coin} đã phá vỡ vùng hỗ trợ {support:.2f}! Giá hiện tại: {price}\n"
-                breakout_alerts.append(alert)
-                BREAKOUT_REPORTED[coin]["support"] = True
-                BREAKOUT_REPORTED[coin]["resistance"] = False
-            elif price > resistance and not BREAKOUT_REPORTED[coin]["resistance"]:
-                alert = f"CẢNH BÁO: {coin} đã phá vỡ vùng kháng cự {resistance:.2f}! Giá hiện tại: {price}\n"
-                breakout_alerts.append(alert)
-                BREAKOUT_REPORTED[coin]["resistance"] = True
-                BREAKOUT_REPORTED[coin]["support"] = False
-
-def on_error(ws, error):
-    breakout_alerts.append(f"Lỗi WebSocket: {error}\n")
-
-def on_open(ws):
-    breakout_alerts.append("Đã kết nối WebSocket!\n")
-    for coin in COIN_LIST:
-        ws.send(f'{{"op": "subscribe", "args": [{{"channel": "tickers", "instId": "{coin}"}}]}}')
-
 # Route chính để hiển thị kết quả trên web
 @app.route('/')
 def index():
@@ -360,14 +331,3 @@ if __name__ == "__main__":
     # Khởi động lịch trình
     schedule_thread = Thread(target=run_schedule)
     schedule_thread.start()
-    
-    # Khởi động WebSocket
-    ws = websocket.WebSocketApp("wss://ws.okx.com:8443/ws/v5/public",
-                                on_message=on_message,
-                                on_error=on_error,
-                                on_open=on_open)
-    ws_thread = Thread(target=ws.run_forever)
-    ws_thread.start()
-    
-    # Chạy Flask app
-    app.run(host='0.0.0.0', port=5000)
