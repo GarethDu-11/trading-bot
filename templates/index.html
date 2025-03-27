@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .section h2 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        .section pre {
+            white-space: pre-wrap;
+            font-size: 16px;
+            color: #333;
+        }
+        .alerts {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Trading Bot Analysis</h1>
+    
+    <div class="section">
+        <h2>Daily Analysis</h2>
+        {% if analysis_results %}
+            {% for result in analysis_results %}
+                <pre>{{ result }}</pre>
+            {% endfor %}
+        {% else %}
+            <p>No analysis results available yet.</p>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>Breakout Alerts</h2>
+        {% if breakout_alerts %}
+            {% for alert in breakout_alerts %}
+                <pre class="alerts">{{ alert }}</pre>
+            {% endfor %}
+        {% else %}
+            <p>No breakout alerts yet.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
