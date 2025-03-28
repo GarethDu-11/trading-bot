@@ -29,7 +29,8 @@ def load_coins():
             {"symbol": "BTCUSDT", "tv_symbol": "BTCUSDT", "exchange": "BINANCE"},
             {"symbol": "ETHUSDT", "tv_symbol": "ETHUSDT", "exchange": "BINANCE"},
             {"symbol": "XRPUSDT", "tv_symbol": "XRPUSDT", "exchange": "BINANCE"},
-            {"symbol": "SOLUSDT", "tv_symbol": "SOLUSDT", "exchange": "BINANCE"}
+            {"symbol": "SOLUSDT", "tv_symbol": "SOLUSDT", "exchange": "BINANCE"},
+            {"symbol": "ALPHUSDT", "tv_symbol": "ALPHUSDT", "exchange": "MEXC"}
         ]
         with open(COINS_FILE, 'w') as f:
             json.dump(default_coins, f, indent=4)
