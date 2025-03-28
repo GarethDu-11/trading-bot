@@ -7,6 +7,7 @@ import os
 from threading import Thread
 from flask import Flask, render_template, jsonify, request
 from tvDatafeed import TvDatafeed, Interval
+from difflib import SequenceMatcher
 
 # Thiết lập logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -16,6 +17,12 @@ app = Flask(__name__)
 
 # Đường dẫn đến file JSON lưu danh sách coin
 COINS_FILE = "coins.json"
+
+# Danh sách coin phổ biến trên TradingView để gợi ý
+KNOWN_COINS = [
+    "BTCUSDT", "ETHUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT", "BNBUSDT",
+    "LTCUSDT", "LINKUSDT", "MATICUSDT", "DOTUSDT", "AVAXUSDT", "SHIBUSDT", "TRXUSDT"
+]
 
 # Đọc danh sách coin từ file JSON hoặc sử dụng danh sách mặc định
 def load_coins():
@@ -462,6 +469,8 @@ def check_breakout():
 # Thêm endpoint để lấy giá thời gian thực
 @app.route('/get_prices', methods=['GET'])
 def get_prices():
+    global COIN_LIST
+    COIN_LIST = load_coins()  # Cập nhật COIN_LIST để đảm bảo bao gồm coin mới
     prices = {}
     for coin in COIN_LIST:
         coin_symbol = coin["symbol"]
@@ -472,18 +481,38 @@ def get_prices():
             prices[coin_symbol] = price
     return jsonify(prices)
 
+# Thêm endpoint để gợi ý coin
+@app.route('/suggest_coins', methods=['GET'])
+def suggest_coins():
+    query = request.args.get('query', '').upper()
+    if not query:
+        return jsonify([])
+
+    suggestions = []
+    for coin in KNOWN_COINS:
+        similarity = SequenceMatcher(None, query, coin).ratio()
+        if similarity >= 0.9:  # Tương đồng 90% trở lên
+            suggestions.append({
+                "symbol": coin,
+                "icon": f"https://cryptologos.cc/logos/{coin.replace('USDT', '').lower()}-{coin.replace('USDT', '').lower()}-logo.png"
+            })
+    return jsonify(suggestions)
+
 # Thêm endpoint để thêm coin mới
 @app.route('/add_coin', methods=['POST'])
 def add_coin():
     global COIN_LIST
     data = request.form
-    symbol = data.get('symbol').upper()
-    tv_symbol = data.get('tv_symbol').upper()
+    coin_name = data.get('coin_name').upper()
     exchange = data.get('exchange').upper()
 
     # Kiểm tra dữ liệu đầu vào
-    if not symbol or not tv_symbol or not exchange:
+    if not coin_name or not exchange:
         return jsonify({"status": "error", "message": "Vui lòng điền đầy đủ thông tin!"})
+
+    # Tạo symbol và tv_symbol
+    symbol = f"{coin_name}USDT"
+    tv_symbol = symbol
 
     # Kiểm tra xem coin đã tồn tại chưa
     for coin in COIN_LIST:
@@ -499,6 +528,33 @@ def add_coin():
     # Chạy lại phân tích
     daily_analysis()
     return jsonify({"status": "success", "message": f"Đã thêm {symbol} vào danh sách theo dõi!"})
+
+# Thêm endpoint để xóa coin
+@app.route('/remove_coin', methods=['POST'])
+def remove_coin():
+    global COIN_LIST
+    symbol = request.form.get('symbol')
+
+    # Kiểm tra dữ liệu đầu vào
+    if not symbol:
+        return jsonify({"status": "error", "message": "Không tìm thấy coin để xóa!"})
+
+    # Xóa coin khỏi danh sách
+    COIN_LIST = [coin for coin in COIN_LIST if coin["symbol"] != symbol]
+    save_coins(COIN_LIST)
+    logger.info(f"Đã xóa coin: {symbol}")
+
+    # Xóa các trạng thái liên quan
+    if symbol in SUPPORT_RESISTANCE:
+        del SUPPORT_RESISTANCE[symbol]
+    if symbol in PRICE_REPORTED:
+        del PRICE_REPORTED[symbol]
+    if symbol in BREAKOUT_REPORTED:
+        del BREAKOUT_REPORTED[symbol]
+
+    # Chạy lại phân tích
+    daily_analysis()
+    return jsonify({"status": "success", "message": f"Đã xóa {symbol} khỏi danh sách theo dõi!"})
 
 # Lên lịch
 schedule.every(60).seconds.do(check_breakout)

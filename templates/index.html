@@ -29,19 +29,35 @@
             color: #007bff;
             margin-bottom: 10px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+        .coin-box {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+        .coin-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
         }
-        th {
-            background-color: #007bff;
+        .coin-box p {
+            margin: 5px 0;
+        }
+        .remove-coin {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #dc3545;
             color: white;
+            border: 1px solid black;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .remove-coin:hover {
+            background-color: #c82333;
         }
         .alerts {
             color: #dc3545;
@@ -82,6 +98,7 @@
         }
         .add-coin-form {
             margin-top: 20px;
+            position: relative;
         }
         .add-coin-form label {
             margin-right: 10px;
@@ -101,6 +118,32 @@
         .add-coin-form button:hover {
             background-color: #0056b3;
         }
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 200px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: none;
+        }
+        .suggestion-item {
+            padding: 5px 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+        .suggestion-item img {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -110,56 +153,38 @@
         <h2>Daily Analysis</h2>
         <p class="last-updated">Last updated: {{ last_updated }}</p>
         {% if analysis_results %}
-            <table>
-                <tr>
-                    <th>Coin</th>
-                    <th>Current Price</th>
-                    <th>Support (Nearest | Strong)</th>
-                    <th>Resistance (Nearest | Strong)</th>
-                    <th>Pattern</th>
-                    <th>Trend (Probability)</th>
-                    <th>Entry Point</th>
-                </tr>
-                {% for result in analysis_results %}
-                    {% set lines = result.split('\n') %}
-                    {% set coin = lines[0].split(':')[0] %}
-                    {% set price = lines[1].split(': ')[1] %}
-                    {% set nearest_support = lines[2].split(': ')[1].split(', ')[0] %}
-                    {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] %}
-                    {% set strong_support = lines[3].split(': ')[1].split(', ')[0] %}
-                    {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] %}
-                    {% set pattern = lines[4].split(': ')[1] if 'Mẫu hình giá' in lines[4] else 'N/A' %}
-                    {% set trend = lines[7].split(': ')[1].split(' (')[0] if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
-                    {% set probability = lines[7].split('Xác suất: ')[1].split('%)')[0] + '%' if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
-                    {% set entry = lines[8].split(': ')[1] if 'Điểm vào lệnh' in lines[8] else 'N/A' %}
-                    <tr>
-                        <td>
-                            <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/default-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
-                            {{ coin }}
-                        </td>
-                        <td class="price-cell" data-coin="{{ coin }}">{{ price }}</td>
-                        <td>
-                            <span class="support">{{ nearest_support }}</span>
-                            <span class="separator"> | </span>
-                            <span class="support">{{ strong_support }}</span>
-                        </td>
-                        <td>
-                            <span class="resistance">{{ nearest_resistance }}</span>
-                            <span class="separator"> | </span>
-                            <span class="resistance">{{ strong_resistance }}</span>
-                        </td>
-                        <td>{{ pattern }}</td>
-                        <td>
-                            {% if trend != 'N/A' %}
-                                <span class="{{ 'trend-up' if trend == 'Tăng' else 'trend-down' }}">{{ trend }}</span> ({{ probability }})
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        </td>
-                        <td>{{ entry }}</td>
-                    </tr>
-                {% endfor %}
-            </table>
+            {% for result in analysis_results %}
+                {% set lines = result.split('\n') %}
+                {% set coin = lines[0].split(':')[0] %}
+                {% set price = lines[1].split(': ')[1] %}
+                {% set nearest_support = lines[2].split(': ')[1].split(', ')[0] %}
+                {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] %}
+                {% set strong_support = lines[3].split(': ')[1].split(', ')[0] %}
+                {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] %}
+                {% set pattern = lines[4].split(': ')[1] if 'Mẫu hình giá' in lines[4] else 'N/A' %}
+                {% set trend = lines[7].split(': ')[1].split(' (')[0] if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
+                {% set probability = lines[7].split('Xác suất: ')[1].split('%)')[0] + '%' if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
+                {% set entry = lines[8].split(': ')[1] if 'Điểm vào lệnh' in lines[8] else 'N/A' %}
+                <div class="coin-box" data-coin="{{ coin }}">
+                    <button class="remove-coin" onclick="confirmRemoveCoin('{{ coin }}')">X</button>
+                    <h3>
+                        <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/default-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
+                        {{ coin }}
+                    </h3>
+                    <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
+                    <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
+                    <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
+                    <p>Mẫu hình: {{ pattern }}</p>
+                    <p>Xu hướng: 
+                        {% if trend != 'N/A' %}
+                            <span class="{{ 'trend-up' if trend == 'Tăng' else 'trend-down' }}">{{ trend }}</span> ({{ probability }})
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                    <p>Điểm vào lệnh: {{ entry }}</p>
+                </div>
+            {% endfor %}
         {% else %}
             <p>No analysis results available yet.</p>
         {% endif %}
@@ -181,13 +206,13 @@
     <div class="section">
         <h2>Thêm Yêu Thích</h2>
         <form class="add-coin-form" id="addCoinForm">
-            <label for="symbol">Symbol:</label>
-            <input type="text" id="symbol" name="symbol" placeholder="e.g., ADAUSDT" required>
-            <label for="tv_symbol">TradingView Symbol:</label>
-            <input type="text" id="tv_symbol" name="tv_symbol" placeholder="e.g., ADAUSDT" required>
-            <label for="exchange">Exchange:</label>
+            <label for="coin_name">Tên đồng coin:</label>
+            <input type="text" id="coin_name" name="coin_name" placeholder="e.g., ADA" required>
+            <span>USDT</span>
+            <label for="exchange">Sàn giao dịch:</label>
             <input type="text" id="exchange" name="exchange" placeholder="e.g., BINANCE" required>
             <button type="submit">Thêm Coin</button>
+            <div class="suggestions" id="suggestions"></div>
         </form>
     </div>
 
@@ -213,6 +238,69 @@
             })
             .catch(error => console.error('Error adding coin:', error));
         });
+
+        // Gợi ý coin khi nhập tên
+        const coinInput = document.getElementById('coin_name');
+        const suggestionsDiv = document.getElementById('suggestions');
+        coinInput.addEventListener('input', function() {
+            const query = this.value;
+            if (query.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+
+            fetch(`/suggest_coins?query=${query}`)
+                .then(response => response.json())
+                .then(suggestions => {
+                    suggestionsDiv.innerHTML = '';
+                    if (suggestions.length > 0) {
+                        suggestions.forEach(suggestion => {
+                            const item = document.createElement('div');
+                            item.className = 'suggestion-item';
+                            item.innerHTML = `
+                                <img src="${suggestion.icon}" alt="${suggestion.symbol} icon">
+                                ${suggestion.symbol}
+                            `;
+                            item.addEventListener('click', () => {
+                                coinInput.value = suggestion.symbol.replace('USDT', '');
+                                suggestionsDiv.style.display = 'none';
+                            });
+                            suggestionsDiv.appendChild(item);
+                        });
+                        suggestionsDiv.style.display = 'block';
+                    } else {
+                        suggestionsDiv.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error fetching suggestions:', error));
+        });
+
+        // Ẩn gợi ý khi click ra ngoài
+        document.addEventListener('click', function(e) {
+            if (!suggestionsDiv.contains(e.target) && e.target !== coinInput) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        // Xử lý xóa coin
+        function confirmRemoveCoin(symbol) {
+            if (confirm(`Bạn có chắc chắn muốn ngừng theo dõi ${symbol} không?`)) {
+                const formData = new FormData();
+                formData.append('symbol', symbol);
+                fetch('/remove_coin', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.status === 'success') {
+                        location.reload();
+                    }
+                })
+                .catch(error => console.error('Error removing coin:', error));
+            }
+        }
 
         // Cập nhật giá theo thời gian thực
         function updatePrices() {
