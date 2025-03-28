@@ -95,6 +95,7 @@
         .section h2 {
             color: #007bff;
             margin-bottom: 10px;
+            display: inline-block;
         }
         .coin-box {
             position: relative;
@@ -173,6 +174,18 @@
         .price-cell {
             font-weight: bold;
         }
+        .notification-btn {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .notification-btn:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -190,7 +203,8 @@
 
     <div class="section">
         <h2>Daily Analysis</h2>
-        <p class="last-updated">Last updated: {{ last_updated }}</p>
+        <button class="notification-btn" onclick="requestNotificationPermission()">Nhận thông báo</button>
+        <p class="last-updated">Last updated: <span id="last-updated">{{ last_updated }}</span></p>
         {% if analysis_results %}
             {% for result in analysis_results %}
                 {% set lines = result.split('\n') %}
@@ -240,6 +254,14 @@
     </div>
 
     <script>
+        // Sửa thời gian "Last updated" theo múi giờ của thiết bị
+        function updateLastUpdated() {
+            const lastUpdatedElement = document.getElementById('last-updated');
+            const serverTime = new Date(lastUpdatedElement.textContent);
+            lastUpdatedElement.textContent = serverTime.toLocaleString();
+        }
+        updateLastUpdated();
+
         // Xử lý form tìm kiếm coin
         document.getElementById('searchCoinForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -333,6 +355,52 @@
                 })
                 .catch(error => console.error('Error:', error));
         }
+
+        // Xử lý thông báo qua Chrome
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                const userResponse = confirm("Bạn có muốn nhận thông báo khi có biến động giá mới không?");
+                if (userResponse) {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            alert('Đã bật thông báo thành công!');
+                            // Lưu trạng thái đã bật thông báo
+                            localStorage.setItem('notificationsEnabled', 'true');
+                        } else {
+                            alert('Bạn đã từ chối nhận thông báo.');
+                        }
+                    });
+                } else {
+                    alert('Bạn đã từ chối nhận thông báo.');
+                }
+            } else {
+                alert('Trình duyệt của bạn không hỗ trợ thông báo.');
+            }
+        }
+
+        // Kiểm tra và gửi thông báo khi có đột phá
+        function checkBreakoutNotifications() {
+            fetch('/get_breakout_status')
+                .then(response => response.json())
+                .then(data => {
+                    const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+                    if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+                        for (const [coin, status] of Object.entries(data)) {
+                            if (status.message && (status.support || status.resistance)) {
+                                new Notification('Cảnh báo giá đột phá', {
+                                    body: status.message,
+                                    icon: 'https://cryptologos.cc/logos/default-logo.png'
+                                });
+                            }
+                        }
+                    }
+                })
+                .catch(error => console.error('Error checking breakout status:', error));
+        }
+
+        // Kiểm tra thông báo mỗi 60 giây
+        setInterval(checkBreakoutNotifications, 60000);
+        checkBreakoutNotifications(); // Gọi ngay lần đầu
     </script>
 </body>
 </html>

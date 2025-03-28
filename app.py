@@ -73,7 +73,7 @@ except Exception as e:
     tv = None
 
 # Hàm lấy dữ liệu nến từ TradingView
-def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h", limit=100):
+def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h", limit=45):
     try:
         if tv is None:
             raise Exception("Không thể kết nối với TradingView")
@@ -187,7 +187,7 @@ def identify_candlestick_pattern(df, price_trend):
 
 # Hàm nhận diện mẫu hình giá phức tạp
 def identify_price_pattern(df):
-    if len(df) < 20:
+    if len(df) < 20:  # Giảm yêu cầu tối thiểu để phát hiện mẫu hình
         return None, 0, None, None, None, None
     
     highs = df['high'].values
@@ -304,7 +304,7 @@ def get_current_price(tv_symbol, exchange):
 def check_confluence(coin_symbol, tv_symbol, exchange, trend_4h):
     timeframes = ["5m", "15m", "1h", "1d", "1w"]
     for timeframe in timeframes:
-        _, _, _, _, df = get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe, limit=100)
+        _, _, _, _, df = get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe, limit=45)
         if df is not None:
             _, similarity, _, trend, _, _ = identify_price_pattern(df)
             if similarity >= 80 and trend is not None and trend == trend_4h:
@@ -331,7 +331,7 @@ def daily_analysis():
         tv_symbol = coin["tv_symbol"]
         exchange = coin["exchange"]
         try:
-            support_nearest, resistance_nearest, support_strong, resistance_strong, df = get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", limit=100)
+            support_nearest, resistance_nearest, support_strong, resistance_strong, df = get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", limit=45)
             if df is not None:
                 price_pattern, similarity, key_level, price_trend, pattern_low, pattern_high = identify_price_pattern(df)
                 price = get_current_price(tv_symbol, exchange)
@@ -485,13 +485,15 @@ def suggest_coins():
     try:
         # Tìm kiếm trên TradingView
         suggestions = []
-        search_results = tv.search_symbol(query, exchange=exchange)
+        search_results = tv.search_symbol(query)
         for result in search_results:
             symbol = result['symbol']
-            if symbol.endswith('USDT') and result['exchange'] == exchange:
+            result_exchange = result['exchange'].upper()
+            # Kiểm tra nếu symbol kết thúc bằng USDT và sàn giao dịch khớp
+            if symbol.endswith('USDT') and result_exchange == exchange:
                 suggestions.append({
                     "symbol": symbol,
-                    "exchange": result['exchange'],
+                    "exchange": result_exchange,
                     "icon": f"https://cryptologos.cc/logos/{symbol.replace('USDT', '').lower()}-{symbol.replace('USDT', '').lower()}-logo.png"
                 })
         return jsonify(suggestions)
@@ -569,7 +571,7 @@ def initialize_support_resistance():
         coin_symbol = coin["symbol"]
         tv_symbol = coin["tv_symbol"]
         exchange = coin["exchange"]
-        support_nearest, resistance_nearest, _, _, _ = get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", limit=100)
+        support_nearest, resistance_nearest, _, _, _ = get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", limit=45)
         if support_nearest is not None and resistance_nearest is not None:
             SUPPORT_RESISTANCE[coin_symbol] = (support_nearest, resistance_nearest)
             logger.info(f"Đã khởi tạo SUPPORT_RESISTANCE cho {coin_symbol}: {support_nearest}, {resistance_nearest}")
