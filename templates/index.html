@@ -97,6 +97,21 @@
             margin-bottom: 10px;
             display: inline-block;
         }
+        .notification-btn {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .notification-btn:hover {
+            background-color: #218838;
+        }
+        .notification-btn.disabled {
+            background-color: #6c757d;
+        }
         .coin-box {
             position: relative;
             margin-bottom: 20px;
@@ -174,18 +189,6 @@
         .price-cell {
             font-weight: bold;
         }
-        .notification-btn {
-            margin-left: 10px;
-            padding: 5px 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .notification-btn:hover {
-            background-color: #218838;
-        }
     </style>
 </head>
 <body>
@@ -195,7 +198,6 @@
         <form class="search-form" id="searchCoinForm">
             <input type="text" id="coin_name" name="coin_name" placeholder="Tên đồng coin (e.g., ADA)" required>
             <span>USDT</span>
-            <input type="text" id="exchange" name="exchange" placeholder="Sàn giao dịch (e.g., BINANCE)" required>
             <button type="submit">Tìm</button>
         </form>
         <div class="suggestions" id="suggestions"></div>
@@ -203,7 +205,7 @@
 
     <div class="section">
         <h2>Daily Analysis</h2>
-        <button class="notification-btn" onclick="requestNotificationPermission()">Nhận thông báo</button>
+        <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">Nhận thông báo</button>
         <p class="last-updated">Last updated: <span id="last-updated">{{ last_updated }}</span></p>
         {% if analysis_results %}
             {% for result in analysis_results %}
@@ -257,8 +259,14 @@
         // Sửa thời gian "Last updated" theo múi giờ của thiết bị
         function updateLastUpdated() {
             const lastUpdatedElement = document.getElementById('last-updated');
-            const serverTime = new Date(lastUpdatedElement.textContent);
-            lastUpdatedElement.textContent = serverTime.toLocaleString();
+            const serverTimeStr = lastUpdatedElement.textContent;
+            const serverTime = new Date(serverTimeStr + ' UTC'); // Thêm UTC để đảm bảo thời gian từ server được hiểu đúng
+            if (isNaN(serverTime)) {
+                console.error('Invalid date format for last_updated:', serverTimeStr);
+                return;
+            }
+            const localTime = serverTime.toLocaleString();
+            lastUpdatedElement.textContent = localTime;
         }
         updateLastUpdated();
 
@@ -266,10 +274,9 @@
         document.getElementById('searchCoinForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const coinName = document.getElementById('coin_name').value;
-            const exchange = document.getElementById('exchange').value;
             const suggestionsDiv = document.getElementById('suggestions');
 
-            fetch(`/suggest_coins?query=${coinName}&exchange=${exchange}`)
+            fetch(`/suggest_coins?query=${coinName}`)
                 .then(response => response.json())
                 .then(suggestions => {
                     suggestionsDiv.innerHTML = '';
@@ -357,45 +364,89 @@
         }
 
         // Xử lý thông báo qua Chrome
-        function requestNotificationPermission() {
-            if ('Notification' in window) {
-                const userResponse = confirm("Bạn có muốn nhận thông báo khi có biến động giá mới không?");
-                if (userResponse) {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            alert('Đã bật thông báo thành công!');
-                            // Lưu trạng thái đã bật thông báo
-                            localStorage.setItem('notificationsEnabled', 'true');
-                        } else {
-                            alert('Bạn đã từ chối nhận thông báo.');
-                        }
-                    });
+        function toggleNotifications() {
+            const notificationBtn = document.getElementById('notificationBtn');
+            const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+
+            if (!notificationsEnabled) {
+                // Chưa bật thông báo -> Yêu cầu bật
+                if ('Notification' in window) {
+                    const userResponse = confirm("Bạn có muốn nhận thông báo khi có biến động giá mới không?");
+                    if (userResponse) {
+                        Notification.requestPermission().then(permission => {
+                            if (permission === 'granted') {
+                                localStorage.setItem('notificationsEnabled', 'true');
+                                notificationBtn.textContent = 'Đã nhận thông báo';
+                                notificationBtn.classList.add('disabled');
+                                alert('Đã bật thông báo thành công!');
+                            } else {
+                                alert('Bạn đã từ chối nhận thông báo.');
+                            }
+                        });
+                    } else {
+                        alert('Bạn đã từ chối nhận thông báo.');
+                    }
                 } else {
-                    alert('Bạn đã từ chối nhận thông báo.');
+                    alert('Trình duyệt của bạn không hỗ trợ thông báo.');
                 }
             } else {
-                alert('Trình duyệt của bạn không hỗ trợ thông báo.');
+                // Đã bật thông báo -> Hỏi hủy
+                const userResponse = confirm("Bạn có muốn hủy thông báo không?");
+                if (userResponse) {
+                    localStorage.setItem('notificationsEnabled', 'false');
+                    notificationBtn.textContent = 'Nhận thông báo';
+                    notificationBtn.classList.remove('disabled');
+                    alert('Đã hủy thông báo thành công!');
+                }
             }
         }
 
+        // Khởi tạo trạng thái nút thông báo
+        function initNotificationButton() {
+            const notificationBtn = document.getElementById('notificationBtn');
+            const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+            if (notificationsEnabled) {
+                notificationBtn.textContent = 'Đã nhận thông báo';
+                notificationBtn.classList.add('disabled');
+            } else {
+                notificationBtn.textContent = 'Nhận thông báo';
+                notificationBtn.classList.remove('disabled');
+            }
+        }
+        initNotificationButton();
+
         // Kiểm tra và gửi thông báo khi có đột phá
         function checkBreakoutNotifications() {
-            fetch('/get_breakout_status')
-                .then(response => response.json())
-                .then(data => {
-                    const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-                    if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
-                        for (const [coin, status] of Object.entries(data)) {
-                            if (status.message && (status.support || status.resistance)) {
-                                new Notification('Cảnh báo giá đột phá', {
-                                    body: status.message,
-                                    icon: 'https://cryptologos.cc/logos/default-logo.png'
-                                });
+            const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+            if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+                fetch('/get_prices')
+                    .then(response => response.json())
+                    .then(prices => {
+                        document.querySelectorAll('.coin-box').forEach(coinBox => {
+                            const coin = coinBox.getAttribute('data-coin');
+                            const price = prices[coin];
+                            if (price) {
+                                const support = parseFloat(coinBox.querySelector('.support').textContent);
+                                const resistance = parseFloat(coinBox.querySelector('.resistance').textContent);
+                                const breakoutDot = coinBox.querySelector('.breakout-dot');
+                                const breakoutMessage = coinBox.querySelector('.breakout-message');
+
+                                if (price < support && !breakoutDot) {
+                                    const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng hỗ trợ ${support.toFixed(2)}! Giá hiện tại: ${price}`;
+                                    coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
+                                    coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
+                                    new Notification(message);
+                                } else if (price > resistance && !breakoutDot) {
+                                    const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng kháng cự ${resistance.toFixed(2)}! Giá hiện tại: ${price}`;
+                                    coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
+                                    coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
+                                    new Notification(message);
+                                }
                             }
-                        }
-                    }
-                })
-                .catch(error => console.error('Error checking breakout status:', error));
+                        });
+                    })
+                    .catch(error => console.error('Error checking breakout:', error));
+            }
         }
 
         // Kiểm tra thông báo mỗi 60 giây

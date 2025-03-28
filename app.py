@@ -478,8 +478,7 @@ def get_prices():
 @app.route('/suggest_coins', methods=['GET'])
 def suggest_coins():
     query = request.args.get('query', '').upper()
-    exchange = request.args.get('exchange', '').upper()
-    if not query or not exchange:
+    if not query:
         return jsonify([])
 
     try:
@@ -489,8 +488,8 @@ def suggest_coins():
         for result in search_results:
             symbol = result['symbol']
             result_exchange = result['exchange'].upper()
-            # Kiểm tra nếu symbol kết thúc bằng USDT và sàn giao dịch khớp
-            if symbol.endswith('USDT') and result_exchange == exchange:
+            # Chỉ kiểm tra symbol kết thúc bằng USDT
+            if symbol.endswith('USDT'):
                 suggestions.append({
                     "symbol": symbol,
                     "exchange": result_exchange,
