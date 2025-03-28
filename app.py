@@ -3,7 +3,7 @@ import schedule
 import time
 import logging
 from threading import Thread
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from tvDatafeed import TvDatafeed, Interval
 
 # Thiết lập logging
@@ -36,12 +36,15 @@ breakout_alerts = []
 # Lưu trữ thời gian cập nhật
 last_updated = "Chưa cập nhật"
 
+# Lưu trữ thời gian phân tích cuối cùng
+last_analysis_time = 0
+
 # Khởi tạo TvDatafeed với thông tin đăng nhập
 try:
     tv = TvDatafeed(
         username="doluongdudz@gmail.com",
         password="DLDU01012000"
-      )
+    )
     logger.info("Đã kết nối thành công với TradingView")
 except Exception as e:
     logger.error(f"Lỗi khi kết nối với TradingView: {e}")
@@ -288,7 +291,7 @@ def check_confluence(coin_symbol, tv_symbol, exchange, trend_4h):
 
 # Hàm phân tích và đưa ra gợi ý hàng ngày
 def daily_analysis():
-    global analysis_results, last_updated
+    global analysis_results, last_updated, last_analysis_time
     analysis_results = []  # Xóa kết quả cũ
     result = "PHÂN TÍCH HÀNG NGÀY (6:00 AM)\n\n"
     logger.info("Bắt đầu phân tích hàng ngày")
@@ -364,6 +367,9 @@ def daily_analysis():
                 result += coin_result
                 analysis_results.append(coin_result)
                 
+                # Cập nhật SUPPORT_RESISTANCE
+                SUPPORT_RESISTANCE[coin_symbol] = (support_nearest, resistance_nearest)
+                
                 PRICE_REPORTED[coin_symbol] = True
                 logger.info(f"Phân tích thành công cho {coin_symbol}")
             else:
@@ -377,10 +383,13 @@ def daily_analysis():
             result += error_msg
             analysis_results.append(error_msg)
     last_updated = time.strftime("%Y-%m-%d %H:%M:%S")
+    last_analysis_time = time.time()
 
 # Hàm kiểm tra breakout định kỳ
 def check_breakout():
+    global last_analysis_time
     logger.info("Kiểm tra breakout")
+    breakout_detected = False
     for coin in COIN_LIST:
         coin_symbol = coin["symbol"]
         tv_symbol = coin["tv_symbol"]
@@ -397,17 +406,42 @@ def check_breakout():
                     BREAKOUT_REPORTED[coin_symbol]["support"] = True
                     BREAKOUT_REPORTED[coin_symbol]["resistance"] = False
                     logger.info(f"Cảnh báo đột phá: {alert.strip()}")
+                    breakout_detected = True
                 elif price > resistance and not BREAKOUT_REPORTED[coin_symbol]["resistance"]:
                     alert = f"CẢNH BÁO: {coin_symbol} đã phá vỡ vùng kháng cự {resistance:.2f}! Giá hiện tại: {price}\n"
                     breakout_alerts.append(alert)
                     BREAKOUT_REPORTED[coin_symbol]["resistance"] = True
                     BREAKOUT_REPORTED[coin_symbol]["support"] = False
                     logger.info(f"Cảnh báo đột phá: {alert.strip()}")
+                    breakout_detected = True
         except Exception as e:
             logger.error(f"Lỗi khi kiểm tra breakout cho {coin_symbol}: {e}")
+    
+    # Nếu có phá vỡ, chạy lại phân tích ngay lập tức
+    if breakout_detected:
+        logger.info("Phát hiện phá vỡ, chạy lại phân tích...")
+        daily_analysis()
+    else:
+        # Nếu không có phá vỡ, kiểm tra thời gian phân tích cuối cùng
+        current_time = time.time()
+        if current_time - last_analysis_time >= 4 * 3600:  # 4 giờ
+            logger.info("Đã qua 4 giờ, chạy lại phân tích...")
+            daily_analysis()
+
+# Thêm endpoint để lấy giá thời gian thực
+@app.route('/get_prices', methods=['GET'])
+def get_prices():
+    prices = {}
+    for coin in COIN_LIST:
+        coin_symbol = coin["symbol"]
+        tv_symbol = coin["tv_symbol"]
+        exchange = coin["exchange"]
+        price = get_current_price(tv_symbol, exchange)
+        if price is not None:
+            prices[coin_symbol] = price
+    return jsonify(prices)
 
 # Lên lịch
-schedule.every().day.at("06:00").do(daily_analysis)
 schedule.every(60).seconds.do(check_breakout)
 
 def run_schedule():
@@ -468,3 +502,6 @@ if __name__ == "__main__":
     # Khởi động lịch trình
     schedule_thread = Thread(target=run_schedule)
     schedule_thread.start()
+    
+    # Chạy Flask app
+    app.run(debug=True, host='0.0.0.0', port=5000)
