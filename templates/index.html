@@ -47,6 +47,14 @@
             font-style: italic;
             color: #666;
         }
+        .trend-up {
+            color: green;
+            font-weight: bold;
+        }
+        .trend-down {
+            color: red;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -60,20 +68,42 @@
                 <tr>
                     <th>Coin</th>
                     <th>Current Price</th>
-                    <th>Support/Resistance</th>
+                    <th>Nearest Support</th>
+                    <th>Nearest Resistance</th>
+                    <th>Strong Support</th>
+                    <th>Strong Resistance</th>
                     <th>Pattern</th>
-                    <th>Trend</th>
+                    <th>Trend (Probability)</th>
                     <th>Entry Point</th>
                 </tr>
                 {% for result in analysis_results %}
                     {% set lines = result.split('\n') %}
+                    {% set coin = lines[0].split(':')[0] %}
+                    {% set price = lines[1].split(': ')[1] %}
+                    {% set nearest_support = lines[2].split(': ')[1].split(', ')[0] %}
+                    {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] %}
+                    {% set strong_support = lines[3].split(': ')[1].split(', ')[0] %}
+                    {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] %}
+                    {% set pattern = lines[4].split(': ')[1] if 'Mẫu hình giá' in lines[4] else 'N/A' %}
+                    {% set trend = lines[7].split(': ')[1].split(' (')[0] if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
+                    {% set probability = lines[7].split('Xác suất: ')[1].split('%)')[0] + '%' if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
+                    {% set entry = lines[8].split(': ')[1] if 'Điểm vào lệnh' in lines[8] else 'N/A' %}
                     <tr>
-                        <td>{{ lines[0].split(':')[0] }}</td>
-                        <td>{{ lines[1].split(': ')[1] }}</td>
-                        <td>{{ lines[2].split(': ')[1] }} / {{ lines[3].split(': ')[1] }}</td>
-                        <td>{{ lines[4].split(': ')[1] if 'Mẫu hình giá' in lines[4] else 'N/A' }}</td>
-                        <td>{{ lines[7].split(': ')[1] if 'Xu hướng dự đoán' in lines[7] else 'N/A' }}</td>
-                        <td>{{ lines[8].split(': ')[1] if 'Điểm vào lệnh' in lines[8] else 'N/A' }}</td>
+                        <td>{{ coin }}</td>
+                        <td>{{ price }}</td>
+                        <td>{{ nearest_support }}</td>
+                        <td>{{ nearest_resistance }}</td>
+                        <td>{{ strong_support }}</td>
+                        <td>{{ strong_resistance }}</td>
+                        <td>{{ pattern }}</td>
+                        <td>
+                            {% if trend != 'N/A' %}
+                                <span class="{{ 'trend-up' if trend == 'Tăng' else 'trend-down' }}">{{ trend }}</span> ({{ probability }})
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>{{ entry }}</td>
                     </tr>
                 {% endfor %}
             </table>
@@ -94,7 +124,8 @@
             <p>No breakout alerts yet.</p>
         {% endif %}
     </div>
-        <div class="section">
+
+    <div class="section">
         <button onclick="refreshAnalysis()">Refresh Analysis</button>
     </div>
     <script>
@@ -103,7 +134,7 @@
                 .then(response => response.text())
                 .then(data => {
                     alert(data);
-                    location.reload(); // Làm mới trang để hiển thị kết quả mới
+                    location.reload();
                 })
                 .catch(error => console.error('Error:', error));
         }
