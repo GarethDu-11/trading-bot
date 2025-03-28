@@ -126,9 +126,19 @@
         .remove-coin:hover {
             background-color: #c82333;
         }
-        .alerts {
+        .breakout-dot {
+            position: absolute;
+            top: 10px;
+            right: 40px;
+            width: 10px;
+            height: 10px;
+            background-color: #dc3545;
+            border-radius: 50%;
+        }
+        .breakout-message {
             color: #dc3545;
             font-weight: bold;
+            margin-top: 10px;
         }
         .last-updated {
             font-style: italic;
@@ -196,8 +206,11 @@
                 {% set entry = lines[8].split(': ')[1] if 'Điểm vào lệnh' in lines[8] else 'N/A' %}
                 <div class="coin-box" data-coin="{{ coin }}">
                     <button class="remove-coin" onclick="confirmRemoveCoin('{{ coin }}')">X</button>
+                    {% if coin in BREAKOUT_STATUS and (BREAKOUT_STATUS[coin]['support'] or BREAKOUT_STATUS[coin]['resistance']) %}
+                        <div class="breakout-dot"></div>
+                    {% endif %}
                     <h3>
-                        <img src="https://cryptologos.cc/logos/{{ coin.replace('USDT', '').lower() }}-{{ coin.replace('USDT', '').lower() }}-logo.png" class="coin-icon" alt="{{ coin }} icon" onerror="this.src='https://cryptologos.cc/logos/default-logo.png'">
+                        <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/default-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
                         {{ coin }}
                     </h3>
                     <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
@@ -212,23 +225,13 @@
                         {% endif %}
                     </p>
                     <p>Điểm vào lệnh: {{ entry }}</p>
+                    {% if coin in BREAKOUT_STATUS and BREAKOUT_STATUS[coin]['message'] %}
+                        <p class="breakout-message">{{ BREAKOUT_STATUS[coin]['message'] }}</p>
+                    {% endif %}
                 </div>
             {% endfor %}
         {% else %}
             <p>No analysis results available yet.</p>
-        {% endif %}
-    </div>
-    
-    <div class="section">
-        <h2>Breakout Alerts</h2>
-        {% if breakout_alerts %}
-            <ul>
-                {% for alert in breakout_alerts %}
-                    <li class="alerts">{{ alert }}</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No breakout alerts yet.</p>
         {% endif %}
     </div>
 

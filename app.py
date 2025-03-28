@@ -18,24 +18,6 @@ app = Flask(__name__)
 # Đường dẫn đến file JSON lưu danh sách coin
 COINS_FILE = "coins.json"
 
-# Danh sách coin phổ biến trên TradingView để gợi ý
-KNOWN_COINS = [
-    {"symbol": "BTCUSDT", "exchange": "BINANCE"},
-    {"symbol": "ETHUSDT", "exchange": "BINANCE"},
-    {"symbol": "XRPUSDT", "exchange": "BINANCE"},
-    {"symbol": "SOLUSDT", "exchange": "BINANCE"},
-    {"symbol": "ADAUSDT", "exchange": "BINANCE"},
-    {"symbol": "DOGEUSDT", "exchange": "BINANCE"},
-    {"symbol": "BNBUSDT", "exchange": "BINANCE"},
-    {"symbol": "LTCUSDT", "exchange": "BINANCE"},
-    {"symbol": "LINKUSDT", "exchange": "BINANCE"},
-    {"symbol": "MATICUSDT", "exchange": "BINANCE"},
-    {"symbol": "DOTUSDT", "exchange": "BINANCE"},
-    {"symbol": "AVAXUSDT", "exchange": "BINANCE"},
-    {"symbol": "SHIBUSDT", "exchange": "BINANCE"},
-    {"symbol": "TRXUSDT", "exchange": "BINANCE"}
-]
-
 # Đọc danh sách coin từ file JSON hoặc sử dụng danh sách mặc định
 def load_coins():
     if os.path.exists(COINS_FILE):
@@ -68,11 +50,10 @@ SUPPORT_RESISTANCE = {}
 PRICE_REPORTED = {coin["symbol"]: False for coin in COIN_LIST}
 
 # Lưu trữ trạng thái đã báo phá vỡ hỗ trợ/kháng cự
-BREAKOUT_REPORTED = {coin["symbol"]: {"support": False, "resistance": False} for coin in COIN_LIST}
+BREAKOUT_STATUS = {coin["symbol"]: {"support": False, "resistance": False, "message": ""} for coin in COIN_LIST}
 
 # Lưu trữ kết quả phân tích để hiển thị trên web
 analysis_results = []
-breakout_alerts = []
 
 # Lưu trữ thời gian cập nhật
 last_updated = "Chưa cập nhật"
@@ -332,15 +313,15 @@ def check_confluence(coin_symbol, tv_symbol, exchange, trend_4h):
 
 # Hàm phân tích và đưa ra gợi ý hàng ngày
 def daily_analysis():
-    global analysis_results, last_updated, last_analysis_time, COIN_LIST, PRICE_REPORTED, BREAKOUT_REPORTED
+    global analysis_results, last_updated, last_analysis_time, COIN_LIST, PRICE_REPORTED, BREAKOUT_STATUS
     # Cập nhật COIN_LIST từ file JSON
     COIN_LIST = load_coins()
-    # Cập nhật PRICE_REPORTED và BREAKOUT_REPORTED cho các coin mới
+    # Cập nhật PRICE_REPORTED và BREAKOUT_STATUS cho các coin mới
     for coin in COIN_LIST:
         if coin["symbol"] not in PRICE_REPORTED:
             PRICE_REPORTED[coin["symbol"]] = False
-        if coin["symbol"] not in BREAKOUT_REPORTED:
-            BREAKOUT_REPORTED[coin["symbol"]] = {"support": False, "resistance": False}
+        if coin["symbol"] not in BREAKOUT_STATUS:
+            BREAKOUT_STATUS[coin["symbol"]] = {"support": False, "resistance": False, "message": ""}
     
     analysis_results = []  # Xóa kết quả cũ
     result = "PHÂN TÍCH HÀNG NGÀY (6:00 AM)\n\n"
@@ -450,19 +431,19 @@ def check_breakout():
                 continue
             if coin_symbol in SUPPORT_RESISTANCE:
                 support, resistance = SUPPORT_RESISTANCE[coin_symbol]
-                if price < support and not BREAKOUT_REPORTED[coin_symbol]["support"]:
-                    alert = f"CẢNH BÁO: {coin_symbol} đã phá vỡ vùng hỗ trợ {support:.2f}! Giá hiện tại: {price}\n"
-                    breakout_alerts.append(alert)
-                    BREAKOUT_REPORTED[coin_symbol]["support"] = True
-                    BREAKOUT_REPORTED[coin_symbol]["resistance"] = False
-                    logger.info(f"Cảnh báo đột phá: {alert.strip()}")
+                if price < support and not BREAKOUT_STATUS[coin_symbol]["support"]:
+                    message = f"CẢNH BÁO: {coin_symbol} đã phá vỡ vùng hỗ trợ {support:.2f}! Giá hiện tại: {price}"
+                    BREAKOUT_STATUS[coin_symbol]["support"] = True
+                    BREAKOUT_STATUS[coin_symbol]["resistance"] = False
+                    BREAKOUT_STATUS[coin_symbol]["message"] = message
+                    logger.info(f"Cảnh báo đột phá: {message}")
                     breakout_detected = True
-                elif price > resistance and not BREAKOUT_REPORTED[coin_symbol]["resistance"]:
-                    alert = f"CẢNH BÁO: {coin_symbol} đã phá vỡ vùng kháng cự {resistance:.2f}! Giá hiện tại: {price}\n"
-                    breakout_alerts.append(alert)
-                    BREAKOUT_REPORTED[coin_symbol]["resistance"] = True
-                    BREAKOUT_REPORTED[coin_symbol]["support"] = False
-                    logger.info(f"Cảnh báo đột phá: {alert.strip()}")
+                elif price > resistance and not BREAKOUT_STATUS[coin_symbol]["resistance"]:
+                    message = f"CẢNH BÁO: {coin_symbol} đã phá vỡ vùng kháng cự {resistance:.2f}! Giá hiện tại: {price}"
+                    BREAKOUT_STATUS[coin_symbol]["resistance"] = True
+                    BREAKOUT_STATUS[coin_symbol]["support"] = False
+                    BREAKOUT_STATUS[coin_symbol]["message"] = message
+                    logger.info(f"Cảnh báo đột phá: {message}")
                     breakout_detected = True
         except Exception as e:
             logger.error(f"Lỗi khi kiểm tra breakout cho {coin_symbol}: {e}")
@@ -493,26 +474,30 @@ def get_prices():
             prices[coin_symbol] = price
     return jsonify(prices)
 
-# Thêm endpoint để gợi ý coin
+# Thêm endpoint để gợi ý coin từ TradingView
 @app.route('/suggest_coins', methods=['GET'])
 def suggest_coins():
     query = request.args.get('query', '').upper()
     exchange = request.args.get('exchange', '').upper()
-    if not query:
+    if not query or not exchange:
         return jsonify([])
 
-    suggestions = []
-    for coin in KNOWN_COINS:
-        coin_symbol = coin["symbol"]
-        coin_exchange = coin["exchange"]
-        similarity = SequenceMatcher(None, query, coin_symbol.replace('USDT', '')).ratio()
-        if similarity >= 0.9 and (not exchange or coin_exchange == exchange):  # Tương đồng 90% trở lên và khớp sàn giao dịch
-            suggestions.append({
-                "symbol": coin_symbol,
-                "exchange": coin_exchange,
-                "icon": f"https://cryptologos.cc/logos/{coin_symbol.replace('USDT', '').lower()}-{coin_symbol.replace('USDT', '').lower()}-logo.png"
-            })
-    return jsonify(suggestions)
+    try:
+        # Tìm kiếm trên TradingView
+        suggestions = []
+        search_results = tv.search_symbol(query, exchange=exchange)
+        for result in search_results:
+            symbol = result['symbol']
+            if symbol.endswith('USDT') and result['exchange'] == exchange:
+                suggestions.append({
+                    "symbol": symbol,
+                    "exchange": result['exchange'],
+                    "icon": f"https://cryptologos.cc/logos/{symbol.replace('USDT', '').lower()}-{symbol.replace('USDT', '').lower()}-logo.png"
+                })
+        return jsonify(suggestions)
+    except Exception as e:
+        logger.error(f"Lỗi khi tìm kiếm coin trên TradingView: {e}")
+        return jsonify([])
 
 # Thêm endpoint để thêm coin mới
 @app.route('/add_coin', methods=['POST'])
@@ -561,8 +546,8 @@ def remove_coin():
         del SUPPORT_RESISTANCE[symbol]
     if symbol in PRICE_REPORTED:
         del PRICE_REPORTED[symbol]
-    if symbol in BREAKOUT_REPORTED:
-        del BREAKOUT_REPORTED[symbol]
+    if symbol in BREAKOUT_STATUS:
+        del BREAKOUT_STATUS[symbol]
 
     # Chạy lại phân tích
     daily_analysis()
@@ -594,7 +579,7 @@ def initialize_support_resistance():
 # Route chính để hiển thị kết quả trên web
 @app.route('/')
 def index():
-    return render_template('index.html', analysis_results=analysis_results, breakout_alerts=breakout_alerts, last_updated=last_updated)
+    return render_template('index.html', analysis_results=analysis_results, last_updated=last_updated)
 
 # Route để gọi phân tích thủ công
 @app.route('/analyze', methods=['GET'])
