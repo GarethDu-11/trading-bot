@@ -2,8 +2,10 @@
 import schedule
 import time
 import logging
+import json
+import os
 from threading import Thread
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from tvDatafeed import TvDatafeed, Interval
 
 # Thiết lập logging
@@ -12,13 +14,33 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Danh sách coin quan tâm (định dạng của TradingView)
-COIN_LIST = [
-    {"symbol": "BTCUSDT", "tv_symbol": "BTCUSDT", "exchange": "BINANCE"},
-    {"symbol": "ETHUSDT", "tv_symbol": "ETHUSDT", "exchange": "BINANCE"},
-    {"symbol": "XRPUSDT", "tv_symbol": "XRPUSDT", "exchange": "BINANCE"},
-    {"symbol": "SOLUSDT", "tv_symbol": "SOLUSDT", "exchange": "BINANCE"}
-]
+# Đường dẫn đến file JSON lưu danh sách coin
+COINS_FILE = "coins.json"
+
+# Đọc danh sách coin từ file JSON hoặc sử dụng danh sách mặc định
+def load_coins():
+    if os.path.exists(COINS_FILE):
+        with open(COINS_FILE, 'r') as f:
+            return json.load(f)
+    else:
+        # Danh sách coin mặc định nếu file không tồn tại
+        default_coins = [
+            {"symbol": "BTCUSDT", "tv_symbol": "BTCUSDT", "exchange": "BINANCE"},
+            {"symbol": "ETHUSDT", "tv_symbol": "ETHUSDT", "exchange": "BINANCE"},
+            {"symbol": "XRPUSDT", "tv_symbol": "XRPUSDT", "exchange": "BINANCE"},
+            {"symbol": "SOLUSDT", "tv_symbol": "SOLUSDT", "exchange": "BINANCE"}
+        ]
+        with open(COINS_FILE, 'w') as f:
+            json.dump(default_coins, f, indent=4)
+        return default_coins
+
+# Lưu danh sách coin vào file JSON
+def save_coins(coins):
+    with open(COINS_FILE, 'w') as f:
+        json.dump(coins, f, indent=4)
+
+# Khởi tạo danh sách coin
+COIN_LIST = load_coins()
 
 # Lưu trữ vùng hỗ trợ và kháng cự
 SUPPORT_RESISTANCE = {}
@@ -291,7 +313,16 @@ def check_confluence(coin_symbol, tv_symbol, exchange, trend_4h):
 
 # Hàm phân tích và đưa ra gợi ý hàng ngày
 def daily_analysis():
-    global analysis_results, last_updated, last_analysis_time
+    global analysis_results, last_updated, last_analysis_time, COIN_LIST, PRICE_REPORTED, BREAKOUT_REPORTED
+    # Cập nhật COIN_LIST từ file JSON
+    COIN_LIST = load_coins()
+    # Cập nhật PRICE_REPORTED và BREAKOUT_REPORTED cho các coin mới
+    for coin in COIN_LIST:
+        if coin["symbol"] not in PRICE_REPORTED:
+            PRICE_REPORTED[coin["symbol"]] = False
+        if coin["symbol"] not in BREAKOUT_REPORTED:
+            BREAKOUT_REPORTED[coin["symbol"]] = {"support": False, "resistance": False}
+    
     analysis_results = []  # Xóa kết quả cũ
     result = "PHÂN TÍCH HÀNG NGÀY (6:00 AM)\n\n"
     logger.info("Bắt đầu phân tích hàng ngày")
@@ -440,6 +471,34 @@ def get_prices():
         if price is not None:
             prices[coin_symbol] = price
     return jsonify(prices)
+
+# Thêm endpoint để thêm coin mới
+@app.route('/add_coin', methods=['POST'])
+def add_coin():
+    global COIN_LIST
+    data = request.form
+    symbol = data.get('symbol').upper()
+    tv_symbol = data.get('tv_symbol').upper()
+    exchange = data.get('exchange').upper()
+
+    # Kiểm tra dữ liệu đầu vào
+    if not symbol or not tv_symbol or not exchange:
+        return jsonify({"status": "error", "message": "Vui lòng điền đầy đủ thông tin!"})
+
+    # Kiểm tra xem coin đã tồn tại chưa
+    for coin in COIN_LIST:
+        if coin["symbol"] == symbol:
+            return jsonify({"status": "error", "message": f"{symbol} đã tồn tại trong danh sách!"})
+
+    # Thêm coin mới vào danh sách
+    new_coin = {"symbol": symbol, "tv_symbol": tv_symbol, "exchange": exchange}
+    COIN_LIST.append(new_coin)
+    save_coins(COIN_LIST)
+    logger.info(f"Đã thêm coin mới: {symbol}")
+
+    # Chạy lại phân tích
+    daily_analysis()
+    return jsonify({"status": "success", "message": f"Đã thêm {symbol} vào danh sách theo dõi!"})
 
 # Lên lịch
 schedule.every(60).seconds.do(check_breakout)

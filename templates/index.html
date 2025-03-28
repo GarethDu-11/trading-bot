@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Bot Analysis</title>
+    <title>BOT Giao Dịch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,6 +14,9 @@
         h1 {
             text-align: center;
             color: #333;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5em;
+            text-transform: uppercase;
         }
         .section {
             margin-bottom: 30px;
@@ -55,8 +59,16 @@
             color: red;
             font-weight: bold;
         }
-        .support-resistance {
+        .support {
+            color: green;
+            font-weight: bold;
+        }
+        .resistance {
             color: red;
+            font-weight: bold;
+        }
+        .separator {
+            color: black;
             font-weight: bold;
         }
         .coin-icon {
@@ -68,10 +80,31 @@
         .price-cell {
             font-weight: bold;
         }
+        .add-coin-form {
+            margin-top: 20px;
+        }
+        .add-coin-form label {
+            margin-right: 10px;
+        }
+        .add-coin-form input {
+            padding: 5px;
+            margin-right: 10px;
+        }
+        .add-coin-form button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .add-coin-form button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
-    <h1>Trading Bot Analysis</h1>
+    <h1>BOT Giao Dịch</h1>
     
     <div class="section">
         <h2>Daily Analysis</h2>
@@ -101,12 +134,20 @@
                     {% set entry = lines[8].split(': ')[1] if 'Điểm vào lệnh' in lines[8] else 'N/A' %}
                     <tr>
                         <td>
-                            <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
+                            <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/default-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
                             {{ coin }}
                         </td>
                         <td class="price-cell" data-coin="{{ coin }}">{{ price }}</td>
-                        <td class="support-resistance">{{ nearest_support }} | {{ strong_support }}</td>
-                        <td class="support-resistance">{{ nearest_resistance }} | {{ strong_resistance }}</td>
+                        <td>
+                            <span class="support">{{ nearest_support }}</span>
+                            <span class="separator"> | </span>
+                            <span class="support">{{ strong_support }}</span>
+                        </td>
+                        <td>
+                            <span class="resistance">{{ nearest_resistance }}</span>
+                            <span class="separator"> | </span>
+                            <span class="resistance">{{ strong_resistance }}</span>
+                        </td>
                         <td>{{ pattern }}</td>
                         <td>
                             {% if trend != 'N/A' %}
@@ -138,10 +179,41 @@
     </div>
 
     <div class="section">
+        <h2>Thêm Yêu Thích</h2>
+        <form class="add-coin-form" id="addCoinForm">
+            <label for="symbol">Symbol:</label>
+            <input type="text" id="symbol" name="symbol" placeholder="e.g., ADAUSDT" required>
+            <label for="tv_symbol">TradingView Symbol:</label>
+            <input type="text" id="tv_symbol" name="tv_symbol" placeholder="e.g., ADAUSDT" required>
+            <label for="exchange">Exchange:</label>
+            <input type="text" id="exchange" name="exchange" placeholder="e.g., BINANCE" required>
+            <button type="submit">Thêm Coin</button>
+        </form>
+    </div>
+
+    <div class="section">
         <button onclick="refreshAnalysis()">Refresh Analysis</button>
     </div>
 
     <script>
+        // Xử lý form thêm coin
+        document.getElementById('addCoinForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/add_coin', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.status === 'success') {
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error adding coin:', error));
+        });
+
         // Cập nhật giá theo thời gian thực
         function updatePrices() {
             fetch('/get_prices')
