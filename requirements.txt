@@ -3,4 +3,4 @@ pandas>=2.2.0
 numpy<1.25.0,>=1.23.2
 schedule>=1.1.0
 gunicorn>=20.1.0
-git+https://github.com/StreamAlpha/tvdatafeed.git@main#egg=tvdatafeed
+git+https://github.com/rongardF/tvdatafeed.git@main#egg=tvdatafeed
