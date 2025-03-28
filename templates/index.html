@@ -18,6 +18,73 @@
             font-size: 2.5em;
             text-transform: uppercase;
         }
+        .search-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .search-form {
+            display: inline-block;
+            width: 60%;
+            max-width: 600px;
+        }
+        .search-form input[type="text"] {
+            width: 40%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px 0 0 20px;
+            outline: none;
+            font-size: 16px;
+        }
+        .search-form input[type="text"]:focus {
+            border-color: #007bff;
+        }
+        .search-form span {
+            padding: 10px;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-left: none;
+            border-right: none;
+        }
+        .search-form button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: 1px solid #ddd;
+            border-left: none;
+            border-radius: 0 20px 20px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .search-form button:hover {
+            background-color: #0056b3;
+        }
+        .suggestions {
+            width: 60%;
+            max-width: 600px;
+            margin: 10px auto;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+        .suggestion-item img {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
         .section {
             margin-bottom: 30px;
             padding: 20px;
@@ -96,59 +163,21 @@
         .price-cell {
             font-weight: bold;
         }
-        .add-coin-form {
-            margin-top: 20px;
-            position: relative;
-        }
-        .add-coin-form label {
-            margin-right: 10px;
-        }
-        .add-coin-form input {
-            padding: 5px;
-            margin-right: 10px;
-        }
-        .add-coin-form button {
-            padding: 5px 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .add-coin-form button:hover {
-            background-color: #0056b3;
-        }
-        .suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 200px;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            display: none;
-        }
-        .suggestion-item {
-            padding: 5px 10px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-        }
-        .suggestion-item:hover {
-            background-color: #f0f0f0;
-        }
-        .suggestion-item img {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
-        }
     </style>
 </head>
 <body>
     <h1>BOT Giao Dịch</h1>
     
+    <div class="search-section">
+        <form class="search-form" id="searchCoinForm">
+            <input type="text" id="coin_name" name="coin_name" placeholder="Tên đồng coin (e.g., ADA)" required>
+            <span>USDT</span>
+            <input type="text" id="exchange" name="exchange" placeholder="Sàn giao dịch (e.g., BINANCE)" required>
+            <button type="submit">Tìm</button>
+        </form>
+        <div class="suggestions" id="suggestions"></div>
+    </div>
+
     <div class="section">
         <h2>Daily Analysis</h2>
         <p class="last-updated">Last updated: {{ last_updated }}</p>
@@ -168,7 +197,7 @@
                 <div class="coin-box" data-coin="{{ coin }}">
                     <button class="remove-coin" onclick="confirmRemoveCoin('{{ coin }}')">X</button>
                     <h3>
-                        <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/default-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
+                        <img src="https://cryptologos.cc/logos/{{ coin.replace('USDT', '').lower() }}-{{ coin.replace('USDT', '').lower() }}-logo.png" class="coin-icon" alt="{{ coin }} icon" onerror="this.src='https://cryptologos.cc/logos/default-logo.png'">
                         {{ coin }}
                     </h3>
                     <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
@@ -204,52 +233,18 @@
     </div>
 
     <div class="section">
-        <h2>Thêm Yêu Thích</h2>
-        <form class="add-coin-form" id="addCoinForm">
-            <label for="coin_name">Tên đồng coin:</label>
-            <input type="text" id="coin_name" name="coin_name" placeholder="e.g., ADA" required>
-            <span>USDT</span>
-            <label for="exchange">Sàn giao dịch:</label>
-            <input type="text" id="exchange" name="exchange" placeholder="e.g., BINANCE" required>
-            <button type="submit">Thêm Coin</button>
-            <div class="suggestions" id="suggestions"></div>
-        </form>
-    </div>
-
-    <div class="section">
         <button onclick="refreshAnalysis()">Refresh Analysis</button>
     </div>
 
     <script>
-        // Xử lý form thêm coin
-        document.getElementById('addCoinForm').addEventListener('submit', function(e) {
+        // Xử lý form tìm kiếm coin
+        document.getElementById('searchCoinForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const formData = new FormData(this);
-            fetch('/add_coin', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.status === 'success') {
-                    location.reload();
-                }
-            })
-            .catch(error => console.error('Error adding coin:', error));
-        });
+            const coinName = document.getElementById('coin_name').value;
+            const exchange = document.getElementById('exchange').value;
+            const suggestionsDiv = document.getElementById('suggestions');
 
-        // Gợi ý coin khi nhập tên
-        const coinInput = document.getElementById('coin_name');
-        const suggestionsDiv = document.getElementById('suggestions');
-        coinInput.addEventListener('input', function() {
-            const query = this.value;
-            if (query.length < 2) {
-                suggestionsDiv.style.display = 'none';
-                return;
-            }
-
-            fetch(`/suggest_coins?query=${query}`)
+            fetch(`/suggest_coins?query=${coinName}&exchange=${exchange}`)
                 .then(response => response.json())
                 .then(suggestions => {
                     suggestionsDiv.innerHTML = '';
@@ -259,27 +254,32 @@
                             item.className = 'suggestion-item';
                             item.innerHTML = `
                                 <img src="${suggestion.icon}" alt="${suggestion.symbol} icon">
-                                ${suggestion.symbol}
+                                ${suggestion.symbol} - ${suggestion.exchange}
                             `;
                             item.addEventListener('click', () => {
-                                coinInput.value = suggestion.symbol.replace('USDT', '');
-                                suggestionsDiv.style.display = 'none';
+                                const formData = new FormData();
+                                formData.append('symbol', suggestion.symbol);
+                                formData.append('exchange', suggestion.exchange);
+                                fetch('/add_coin', {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    alert(data.message);
+                                    if (data.status === 'success') {
+                                        location.reload();
+                                    }
+                                })
+                                .catch(error => console.error('Error adding coin:', error));
                             });
                             suggestionsDiv.appendChild(item);
                         });
-                        suggestionsDiv.style.display = 'block';
                     } else {
-                        suggestionsDiv.style.display = 'none';
+                        suggestionsDiv.innerHTML = '<div class="suggestion-item">Không tìm thấy coin phù hợp.</div>';
                     }
                 })
                 .catch(error => console.error('Error fetching suggestions:', error));
-        });
-
-        // Ẩn gợi ý khi click ra ngoài
-        document.addEventListener('click', function(e) {
-            if (!suggestionsDiv.contains(e.target) && e.target !== coinInput) {
-                suggestionsDiv.style.display = 'none';
-            }
         });
 
         // Xử lý xóa coin

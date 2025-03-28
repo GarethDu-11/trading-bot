@@ -20,8 +20,20 @@ COINS_FILE = "coins.json"
 
 # Danh sách coin phổ biến trên TradingView để gợi ý
 KNOWN_COINS = [
-    "BTCUSDT", "ETHUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT", "BNBUSDT",
-    "LTCUSDT", "LINKUSDT", "MATICUSDT", "DOTUSDT", "AVAXUSDT", "SHIBUSDT", "TRXUSDT"
+    {"symbol": "BTCUSDT", "exchange": "BINANCE"},
+    {"symbol": "ETHUSDT", "exchange": "BINANCE"},
+    {"symbol": "XRPUSDT", "exchange": "BINANCE"},
+    {"symbol": "SOLUSDT", "exchange": "BINANCE"},
+    {"symbol": "ADAUSDT", "exchange": "BINANCE"},
+    {"symbol": "DOGEUSDT", "exchange": "BINANCE"},
+    {"symbol": "BNBUSDT", "exchange": "BINANCE"},
+    {"symbol": "LTCUSDT", "exchange": "BINANCE"},
+    {"symbol": "LINKUSDT", "exchange": "BINANCE"},
+    {"symbol": "MATICUSDT", "exchange": "BINANCE"},
+    {"symbol": "DOTUSDT", "exchange": "BINANCE"},
+    {"symbol": "AVAXUSDT", "exchange": "BINANCE"},
+    {"symbol": "SHIBUSDT", "exchange": "BINANCE"},
+    {"symbol": "TRXUSDT", "exchange": "BINANCE"}
 ]
 
 # Đọc danh sách coin từ file JSON hoặc sử dụng danh sách mặc định
@@ -485,16 +497,20 @@ def get_prices():
 @app.route('/suggest_coins', methods=['GET'])
 def suggest_coins():
     query = request.args.get('query', '').upper()
+    exchange = request.args.get('exchange', '').upper()
     if not query:
         return jsonify([])
 
     suggestions = []
     for coin in KNOWN_COINS:
-        similarity = SequenceMatcher(None, query, coin).ratio()
-        if similarity >= 0.9:  # Tương đồng 90% trở lên
+        coin_symbol = coin["symbol"]
+        coin_exchange = coin["exchange"]
+        similarity = SequenceMatcher(None, query, coin_symbol.replace('USDT', '')).ratio()
+        if similarity >= 0.9 and (not exchange or coin_exchange == exchange):  # Tương đồng 90% trở lên và khớp sàn giao dịch
             suggestions.append({
-                "symbol": coin,
-                "icon": f"https://cryptologos.cc/logos/{coin.replace('USDT', '').lower()}-{coin.replace('USDT', '').lower()}-logo.png"
+                "symbol": coin_symbol,
+                "exchange": coin_exchange,
+                "icon": f"https://cryptologos.cc/logos/{coin_symbol.replace('USDT', '').lower()}-{coin_symbol.replace('USDT', '').lower()}-logo.png"
             })
     return jsonify(suggestions)
 
@@ -503,16 +519,12 @@ def suggest_coins():
 def add_coin():
     global COIN_LIST
     data = request.form
-    coin_name = data.get('coin_name').upper()
+    symbol = data.get('symbol').upper()
     exchange = data.get('exchange').upper()
 
     # Kiểm tra dữ liệu đầu vào
-    if not coin_name or not exchange:
+    if not symbol or not exchange:
         return jsonify({"status": "error", "message": "Vui lòng điền đầy đủ thông tin!"})
-
-    # Tạo symbol và tv_symbol
-    symbol = f"{coin_name}USDT"
-    tv_symbol = symbol
 
     # Kiểm tra xem coin đã tồn tại chưa
     for coin in COIN_LIST:
@@ -520,7 +532,7 @@ def add_coin():
             return jsonify({"status": "error", "message": f"{symbol} đã tồn tại trong danh sách!"})
 
     # Thêm coin mới vào danh sách
-    new_coin = {"symbol": symbol, "tv_symbol": tv_symbol, "exchange": exchange}
+    new_coin = {"symbol": symbol, "tv_symbol": symbol, "exchange": exchange}
     COIN_LIST.append(new_coin)
     save_coins(COIN_LIST)
     logger.info(f"Đã thêm coin mới: {symbol}")
