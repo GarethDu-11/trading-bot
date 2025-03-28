@@ -474,32 +474,6 @@ def get_prices():
             prices[coin_symbol] = price
     return jsonify(prices)
 
-# Thêm endpoint để gợi ý coin từ TradingView
-@app.route('/suggest_coins', methods=['GET'])
-def suggest_coins():
-    query = request.args.get('query', '').upper()
-    if not query:
-        return jsonify([])
-
-    try:
-        # Tìm kiếm trên TradingView
-        suggestions = []
-        search_results = tv.search_symbol(query)
-        for result in search_results:
-            symbol = result['symbol']
-            result_exchange = result['exchange'].upper()
-            # Chỉ kiểm tra symbol kết thúc bằng USDT
-            if symbol.endswith('USDT'):
-                suggestions.append({
-                    "symbol": symbol,
-                    "exchange": result_exchange,
-                    "icon": f"https://cryptologos.cc/logos/{symbol.replace('USDT', '').lower()}-{symbol.replace('USDT', '').lower()}-logo.png"
-                })
-        return jsonify(suggestions)
-    except Exception as e:
-        logger.error(f"Lỗi khi tìm kiếm coin trên TradingView: {e}")
-        return jsonify([])
-
 # Thêm endpoint để thêm coin mới
 @app.route('/add_coin', methods=['POST'])
 def add_coin():
@@ -511,6 +485,10 @@ def add_coin():
     # Kiểm tra dữ liệu đầu vào
     if not symbol or not exchange:
         return jsonify({"status": "error", "message": "Vui lòng điền đầy đủ thông tin!"})
+
+    # Thêm hậu tố USDT nếu chưa có
+    if not symbol.endswith('USDT'):
+        symbol += 'USDT'
 
     # Kiểm tra xem coin đã tồn tại chưa
     for coin in COIN_LIST:

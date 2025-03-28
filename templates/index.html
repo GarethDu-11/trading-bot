@@ -45,6 +45,12 @@
             border-left: none;
             border-right: none;
         }
+        .search-form input[type="text"]:last-of-type {
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            width: 40%;
+        }
         .search-form button {
             padding: 10px 20px;
             background-color: #007bff;
@@ -57,33 +63,6 @@
         }
         .search-form button:hover {
             background-color: #0056b3;
-        }
-        .suggestions {
-            width: 60%;
-            max-width: 600px;
-            margin: 10px auto;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .suggestion-item {
-            padding: 10px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid #ddd;
-        }
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-        .suggestion-item:hover {
-            background-color: #f0f0f0;
-        }
-        .suggestion-item img {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
         }
         .section {
             margin-bottom: 30px;
@@ -100,17 +79,20 @@
         .notification-btn {
             margin-left: 10px;
             padding: 5px 10px;
-            background-color: #28a745;
+            background-color: #ffc107; /* Màu vàng cho "Nhận thông báo" */
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
         .notification-btn:hover {
-            background-color: #218838;
+            background-color: #e0a800; /* Màu vàng đậm hơn khi hover */
         }
         .notification-btn.disabled {
-            background-color: #6c757d;
+            background-color: #dc3545; /* Màu đỏ cho "Đã nhận thông báo" */
+        }
+        .notification-btn.disabled:hover {
+            background-color: #c82333; /* Màu đỏ đậm hơn khi hover */
         }
         .coin-box {
             position: relative;
@@ -195,12 +177,12 @@
     <h1>BOT Giao Dịch</h1>
     
     <div class="search-section">
-        <form class="search-form" id="searchCoinForm">
+        <form class="search-form" id="addCoinForm">
             <input type="text" id="coin_name" name="coin_name" placeholder="Tên đồng coin (e.g., ADA)" required>
             <span>USDT</span>
-            <button type="submit">Tìm</button>
+            <input type="text" id="exchange" name="exchange" placeholder="Sàn giao dịch (e.g., BINANCE)" required>
+            <button type="submit">Thêm</button>
         </form>
-        <div class="suggestions" id="suggestions"></div>
     </div>
 
     <div class="section">
@@ -220,13 +202,14 @@
                 {% set trend = lines[7].split(': ')[1].split(' (')[0] if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
                 {% set probability = lines[7].split('Xác suất: ')[1].split('%)')[0] + '%' if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
                 {% set entry = lines[8].split(': ')[1] if 'Điểm vào lệnh' in lines[8] else 'N/A' %}
+                {% set coin_base = coin.replace('USDT', '') %}
                 <div class="coin-box" data-coin="{{ coin }}">
                     <button class="remove-coin" onclick="confirmRemoveCoin('{{ coin }}')">X</button>
                     {% if coin in BREAKOUT_STATUS and (BREAKOUT_STATUS[coin]['support'] or BREAKOUT_STATUS[coin]['resistance']) %}
                         <div class="breakout-dot"></div>
                     {% endif %}
                     <h3>
-                        <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/default-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
+                        <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/' + coin_base.lower() + '-' + coin_base.lower() + '-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
                         {{ coin }}
                     </h3>
                     <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
@@ -270,48 +253,28 @@
         }
         updateLastUpdated();
 
-        // Xử lý form tìm kiếm coin
-        document.getElementById('searchCoinForm').addEventListener('submit', function(e) {
+        // Xử lý form thêm coin
+        document.getElementById('addCoinForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const coinName = document.getElementById('coin_name').value;
-            const suggestionsDiv = document.getElementById('suggestions');
+            const exchange = document.getElementById('exchange').value;
 
-            fetch(`/suggest_coins?query=${coinName}`)
-                .then(response => response.json())
-                .then(suggestions => {
-                    suggestionsDiv.innerHTML = '';
-                    if (suggestions.length > 0) {
-                        suggestions.forEach(suggestion => {
-                            const item = document.createElement('div');
-                            item.className = 'suggestion-item';
-                            item.innerHTML = `
-                                <img src="${suggestion.icon}" alt="${suggestion.symbol} icon">
-                                ${suggestion.symbol} - ${suggestion.exchange}
-                            `;
-                            item.addEventListener('click', () => {
-                                const formData = new FormData();
-                                formData.append('symbol', suggestion.symbol);
-                                formData.append('exchange', suggestion.exchange);
-                                fetch('/add_coin', {
-                                    method: 'POST',
-                                    body: formData
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    alert(data.message);
-                                    if (data.status === 'success') {
-                                        location.reload();
-                                    }
-                                })
-                                .catch(error => console.error('Error adding coin:', error));
-                            });
-                            suggestionsDiv.appendChild(item);
-                        });
-                    } else {
-                        suggestionsDiv.innerHTML = '<div class="suggestion-item">Không tìm thấy coin phù hợp.</div>';
-                    }
-                })
-                .catch(error => console.error('Error fetching suggestions:', error));
+            const formData = new FormData();
+            formData.append('symbol', coinName);
+            formData.append('exchange', exchange);
+
+            fetch('/add_coin', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.status === 'success') {
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error adding coin:', error));
         });
 
         // Xử lý xóa coin
