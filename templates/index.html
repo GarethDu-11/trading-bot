@@ -55,6 +55,19 @@
             color: red;
             font-weight: bold;
         }
+        .support-resistance {
+            color: red;
+            font-weight: bold;
+        }
+        .coin-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .price-cell {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -68,10 +81,8 @@
                 <tr>
                     <th>Coin</th>
                     <th>Current Price</th>
-                    <th>Nearest Support</th>
-                    <th>Nearest Resistance</th>
-                    <th>Strong Support</th>
-                    <th>Strong Resistance</th>
+                    <th>Support (Nearest | Strong)</th>
+                    <th>Resistance (Nearest | Strong)</th>
                     <th>Pattern</th>
                     <th>Trend (Probability)</th>
                     <th>Entry Point</th>
@@ -89,12 +100,13 @@
                     {% set probability = lines[7].split('Xác suất: ')[1].split('%)')[0] + '%' if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
                     {% set entry = lines[8].split(': ')[1] if 'Điểm vào lệnh' in lines[8] else 'N/A' %}
                     <tr>
-                        <td>{{ coin }}</td>
-                        <td>{{ price }}</td>
-                        <td>{{ nearest_support }}</td>
-                        <td>{{ nearest_resistance }}</td>
-                        <td>{{ strong_support }}</td>
-                        <td>{{ strong_resistance }}</td>
+                        <td>
+                            <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
+                            {{ coin }}
+                        </td>
+                        <td class="price-cell" data-coin="{{ coin }}">{{ price }}</td>
+                        <td class="support-resistance">{{ nearest_support }} | {{ strong_support }}</td>
+                        <td class="support-resistance">{{ nearest_resistance }} | {{ strong_resistance }}</td>
                         <td>{{ pattern }}</td>
                         <td>
                             {% if trend != 'N/A' %}
@@ -128,7 +140,27 @@
     <div class="section">
         <button onclick="refreshAnalysis()">Refresh Analysis</button>
     </div>
+
     <script>
+        // Cập nhật giá theo thời gian thực
+        function updatePrices() {
+            fetch('/get_prices')
+                .then(response => response.json())
+                .then(data => {
+                    for (const [coin, price] of Object.entries(data)) {
+                        const priceCell = document.querySelector(`.price-cell[data-coin="${coin}"]`);
+                        if (priceCell) {
+                            priceCell.textContent = price.toFixed(2);
+                        }
+                    }
+                })
+                .catch(error => console.error('Error updating prices:', error));
+        }
+
+        // Cập nhật giá mỗi 10 giây
+        setInterval(updatePrices, 10000);
+        updatePrices(); // Gọi ngay lần đầu
+
         function refreshAnalysis() {
             fetch('/analyze')
                 .then(response => response.text())
