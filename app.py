@@ -4,7 +4,7 @@ import time
 import logging
 from threading import Thread
 from flask import Flask, render_template
-from tvdatafeed import TvDatafeed, Interval
+from tvDatafeed import TvDatafeed, Interval
 
 # Thiết lập logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -40,9 +40,8 @@ last_updated = "Chưa cập nhật"
 try:
     tv = TvDatafeed(
         username="doluongdudz@gmail.com",
-        password="DLDU01012000",
-        chromedriver_path=None  # Nếu cần, bạn có thể chỉ định đường dẫn đến chromedriver
-    )
+        password="DLDU01012000"
+      )
     logger.info("Đã kết nối thành công với TradingView")
 except Exception as e:
     logger.error(f"Lỗi khi kết nối với TradingView: {e}")
