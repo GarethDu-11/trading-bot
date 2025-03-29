@@ -186,10 +186,11 @@
         }
         .price-cell {
             font-weight: bold;
-            margin-right: 10px;
+            margin-left: 10px;
         }
         .change-24h {
             font-weight: bold;
+            margin-left: 10px;
         }
         .change-24h.positive {
             color: green;
@@ -219,11 +220,11 @@
             {% for result in analysis_results %}
                 {% set lines = result.split('\n') %}
                 {% set coin = lines[0].split(':')[0] %}
-                {% set price = lines[1].split(': ')[1] %}
-                {% set nearest_support = lines[2].split(': ')[1].split(', ')[0] %}
-                {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] %}
-                {% set strong_support = lines[3].split(': ')[1].split(', ')[0] %}
-                {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] %}
+                {% set price = lines[1].split(': ')[1] if 'Giá hiện tại' in lines[1] else 'Không có dữ liệu' %}
+                {% set nearest_support = lines[2].split(': ')[1].split(', ')[0] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
+                {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
+                {% set strong_support = lines[3].split(': ')[1].split(', ')[0] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
+                {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
                 {% set pattern = lines[4].split(': ')[1] if 'Mẫu hình giá' in lines[4] else 'N/A' %}
                 {% set trend = lines[7].split(': ')[1].split(' (')[0] if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
                 {% set probability = lines[7].split('Xác suất: ')[1].split('%)')[0] + '%' if 'Xu hướng dự đoán' in lines[7] else 'N/A' %}
@@ -240,11 +241,9 @@
                                  class="coin-icon" alt="{{ coin }} icon"
                                  onerror="this.style.display='none';">
                             {{ coin }}
-                        </h3>
-                        <div>
                             <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span>
                             <span class="change-24h" data-coin="{{ coin }}">N/A</span>
-                        </div>
+                        </h3>
                     </div>
                     <div class="coin-details">
                         <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>

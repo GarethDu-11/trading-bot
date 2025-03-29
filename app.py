@@ -13,7 +13,7 @@ from difflib import SequenceMatcher
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 
 # Đường dẫn đến file JSON lưu danh sách coin
 COINS_FILE = "coins.json"
@@ -355,87 +355,90 @@ def daily_analysis():
         exchange = coin["exchange"]
         try:
             support_nearest, resistance_nearest, support_strong, resistance_strong, df = get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", limit=45)
-            if df is not None:
-                price_pattern, similarity, key_level, price_trend, pattern_low, pattern_high = identify_price_pattern(df)
-                price = get_current_price(tv_symbol, exchange)
-                entry_point = None
-                recommended_entry = None
-                
-                coin_result = f"{coin_symbol}:\n"
-                coin_result += f"Giá hiện tại: {price if price is not None else 'Không có dữ liệu'}\n"
-                coin_result += f"Hỗ trợ gần nhất: {support_nearest:.2f}, Kháng cự gần nhất: {resistance_nearest:.2f}\n"
-                coin_result += f"Hỗ trợ mạnh: {support_strong:.2f}, Kháng cự mạnh: {resistance_strong:.2f}\n"
-                
-                if price_pattern and similarity >= 80:
-                    coin_result += f"Mẫu hình giá: {price_pattern} (Tương đồng: {similarity:.2f}%)\n"
-                    
-                    trend_confirmed = identify_candlestick_pattern(df, price_trend)
-                    coin_result += f"Xác nhận xu hướng: {'Có' if trend_confirmed else 'Không'}\n"
-                    
-                    has_confluence = check_confluence(coin_symbol, tv_symbol, exchange, price_trend)
-                    coin_result += f"Hợp lưu: {'Có' if has_confluence else 'Không'}\n"
-                    
-                    probability = 0
-                    if similarity > 90:
-                        probability += 50
-                    elif similarity >= 80:
-                        probability += 40
-                    if trend_confirmed:
-                        probability += 20
-                    if has_confluence:
-                        probability += 20
-                    
-                    trend_display = "Tăng" if price_trend == "bullish" else "Giảm"
-                    coin_result += f"Xu hướng dự đoán: {trend_display} (Xác suất: {probability}%)\n"
-                    
-                    if price_trend == "bearish":
-                        entry_point = key_level - (resistance_nearest - key_level) * 0.5
-                    elif price_trend == "bullish":
-                        entry_point = key_level + (key_level - support_nearest) * 0.5
-                    
-                    if similarity > 90:
-                        if price_pattern == "Head and Shoulders (Vai-Đầu-Vai)":
-                            distance = pattern_high - key_level
-                            recommended_entry = key_level - distance * 0.1
-                        elif price_pattern == "Double Bottom (Hai Đáy)":
-                            distance = key_level - pattern_low
-                            recommended_entry = key_level + distance * 0.1
-                        elif price_pattern == "Double Top (Hai Đỉnh)":
-                            distance = pattern_high - key_level
-                            recommended_entry = key_level - distance * 0.1
-                        elif price_pattern == "Ascending Triangle (Tam Giác Tăng)":
-                            distance = pattern_high - pattern_low
-                            recommended_entry = key_level + distance * 0.1
-                        elif price_pattern == "Descending Triangle (Tam Giác Giảm)":
-                            distance = pattern_high - pattern_low
-                            recommended_entry = key_level - distance * 0.1
-                else:
-                    coin_result += "Không phát hiện mẫu hình giá rõ ràng.\n"
-                
-                if entry_point:
-                    coin_result += f"Điểm vào lệnh: {'Bán' if price_trend == 'bearish' else 'Mua'} tại {entry_point:.2f}\n"
-                if recommended_entry:
-                    coin_result += f"Giá vào lệnh khuyến nghị: {'Bán' if price_trend == 'bearish' else 'Mua'} tại {recommended_entry:.2f}\n"
-                
-                coin_result += "\n"
-                result += coin_result
-                analysis_results.append(coin_result)
-                
-                # Cập nhật SUPPORT_RESISTANCE
-                SUPPORT_RESISTANCE[coin_symbol] = (support_nearest, resistance_nearest)
-                
-                PRICE_REPORTED[coin_symbol] = True
-                logger.info(f"Phân tích thành công cho {coin_symbol}")
-            else:
+            if df is None:
                 error_msg = f"Không thể phân tích {coin_symbol} do thiếu dữ liệu.\n\n"
                 result += error_msg
                 analysis_results.append(error_msg)
                 logger.warning(f"Không thể phân tích {coin_symbol} do thiếu dữ liệu")
+                continue  # Bỏ qua coin này và tiếp tục với coin tiếp theo
+
+            price_pattern, similarity, key_level, price_trend, pattern_low, pattern_high = identify_price_pattern(df)
+            price = get_current_price(tv_symbol, exchange)
+            entry_point = None
+            recommended_entry = None
+            
+            coin_result = f"{coin_symbol}:\n"
+            coin_result += f"Giá hiện tại: {price if price is not None else 'Không có dữ liệu'}\n"
+            coin_result += f"Hỗ trợ gần nhất: {support_nearest:.2f}, Kháng cự gần nhất: {resistance_nearest:.2f}\n"
+            coin_result += f"Hỗ trợ mạnh: {support_strong:.2f}, Kháng cự mạnh: {resistance_strong:.2f}\n"
+            
+            if price_pattern and similarity >= 80:
+                coin_result += f"Mẫu hình giá: {price_pattern} (Tương đồng: {similarity:.2f}%)\n"
+                
+                trend_confirmed = identify_candlestick_pattern(df, price_trend)
+                coin_result += f"Xác nhận xu hướng: {'Có' if trend_confirmed else 'Không'}\n"
+                
+                has_confluence = check_confluence(coin_symbol, tv_symbol, exchange, price_trend)
+                coin_result += f"Hợp lưu: {'Có' if has_confluence else 'Không'}\n"
+                
+                probability = 0
+                if similarity > 90:
+                    probability += 50
+                elif similarity >= 80:
+                    probability += 40
+                if trend_confirmed:
+                    probability += 20
+                if has_confluence:
+                    probability += 20
+                
+                trend_display = "Tăng" if price_trend == "bullish" else "Giảm"
+                coin_result += f"Xu hướng dự đoán: {trend_display} (Xác suất: {probability}%)\n"
+                
+                if price_trend == "bearish":
+                    entry_point = key_level - (resistance_nearest - key_level) * 0.5
+                elif price_trend == "bullish":
+                    entry_point = key_level + (key_level - support_nearest) * 0.5
+                
+                if similarity > 90:
+                    if price_pattern == "Head and Shoulders (Vai-Đầu-Vai)":
+                        distance = pattern_high - key_level
+                        recommended_entry = key_level - distance * 0.1
+                    elif price_pattern == "Double Bottom (Hai Đáy)":
+                        distance = key_level - pattern_low
+                        recommended_entry = key_level + distance * 0.1
+                    elif price_pattern == "Double Top (Hai Đỉnh)":
+                        distance = pattern_high - key_level
+                        recommended_entry = key_level - distance * 0.1
+                    elif price_pattern == "Ascending Triangle (Tam Giác Tăng)":
+                        distance = pattern_high - pattern_low
+                        recommended_entry = key_level + distance * 0.1
+                    elif price_pattern == "Descending Triangle (Tam Giác Giảm)":
+                        distance = pattern_high - pattern_low
+                        recommended_entry = key_level - distance * 0.1
+            else:
+                coin_result += "Không phát hiện mẫu hình giá rõ ràng.\n"
+            
+            if entry_point:
+                coin_result += f"Điểm vào lệnh: {'Bán' if price_trend == 'bearish' else 'Mua'} tại {entry_point:.2f}\n"
+            if recommended_entry:
+                coin_result += f"Giá vào lệnh khuyến nghị: {'Bán' if price_trend == 'bearish' else 'Mua'} tại {recommended_entry:.2f}\n"
+            
+            coin_result += "\n"
+            result += coin_result
+            analysis_results.append(coin_result)
+            
+            # Cập nhật SUPPORT_RESISTANCE
+            SUPPORT_RESISTANCE[coin_symbol] = (support_nearest, resistance_nearest)
+            
+            PRICE_REPORTED[coin_symbol] = True
+            logger.info(f"Phân tích thành công cho {coin_symbol}")
         except Exception as e:
             error_msg = f"Lỗi khi phân tích {coin_symbol}: {e}\n\n"
             logger.error(error_msg)
             result += error_msg
             analysis_results.append(error_msg)
+            continue  # Bỏ qua coin này và tiếp tục với coin tiếp theo
+
     last_updated = time.strftime("%Y-%m-%d %H:%M:%S")
     last_analysis_time = time.time()
 
