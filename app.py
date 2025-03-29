@@ -59,7 +59,7 @@ def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h", lim
         if tv is None:
             raise Exception("Không thể kết nối với TradingView")
         logger.info(f"Đang lấy dữ liệu nến cho {coin_symbol} ({timeframe})")
-        interval = Interval.in_4_hour if timeframe == "4h" else Interval.in_1_day
+        interval = Interval.in_4_hour if timeframe == "4h" else Interval.in_daily  # Thay in_1_day bằng in_daily
         df = tv.get_hist(symbol=tv_symbol, exchange=exchange, interval=interval, n_bars=limit)
         if df is None or df.empty:
             logger.warning(f"Không có dữ liệu nến cho {coin_symbol}")
