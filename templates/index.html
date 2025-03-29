@@ -96,15 +96,31 @@
         }
         .coin-box {
             position: relative;
-            margin-bottom: 20px;
-            padding: 15px;
+            margin-bottom: 10px;
+            padding: 10px;
             background-color: #f9f9f9;
             border: 1px solid #ddd;
             border-radius: 8px;
+            cursor: pointer;
         }
-        .coin-box h3 {
-            margin: 0 0 10px 0;
+        .coin-box.expanded {
+            padding: 15px;
+        }
+        .coin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .coin-header h3 {
+            margin: 0;
             font-size: 1.2em;
+        }
+        .coin-details {
+            display: none;
+            margin-top: 10px;
+        }
+        .coin-box.expanded .coin-details {
+            display: block;
         }
         .coin-box p {
             margin: 5px 0;
@@ -170,6 +186,16 @@
         }
         .price-cell {
             font-weight: bold;
+            margin-right: 10px;
+        }
+        .change-24h {
+            font-weight: bold;
+        }
+        .change-24h.positive {
+            color: green;
+        }
+        .change-24h.negative {
+            color: red;
         }
     </style>
 </head>
@@ -208,25 +234,35 @@
                     {% if coin in BREAKOUT_STATUS and (BREAKOUT_STATUS[coin]['support'] or BREAKOUT_STATUS[coin]['resistance']) %}
                         <div class="breakout-dot"></div>
                     {% endif %}
-                    <h3>
-                        <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/' + coin_base.lower() + '-' + coin_base.lower() + '-logo.png' }}" class="coin-icon" alt="{{ coin }} icon">
-                        {{ coin }}
-                    </h3>
-                    <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
-                    <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
-                    <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
-                    <p>Mẫu hình: {{ pattern }}</p>
-                    <p>Xu hướng: 
-                        {% if trend != 'N/A' %}
-                            <span class="{{ 'trend-up' if trend == 'Tăng' else 'trend-down' }}">{{ trend }}</span> ({{ probability }})
-                        {% else %}
-                            N/A
+                    <div class="coin-header" onclick="toggleDetails(this)">
+                        <h3>
+                            <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/' + coin_base.lower() + '-' + coin_base.lower() + '-logo.png' }}"
+                                 class="coin-icon" alt="{{ coin }} icon"
+                                 onerror="this.style.display='none';">
+                            {{ coin }}
+                        </h3>
+                        <div>
+                            <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span>
+                            <span class="change-24h" data-coin="{{ coin }}">N/A</span>
+                        </div>
+                    </div>
+                    <div class="coin-details">
+                        <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
+                        <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
+                        <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
+                        <p>Mẫu hình: {{ pattern }}</p>
+                        <p>Xu hướng: 
+                            {% if trend != 'N/A' %}
+                                <span class="{{ 'trend-up' if trend == 'Tăng' else 'trend-down' }}">{{ trend }}</span> ({{ probability }})
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                        <p>Điểm vào lệnh: {{ entry }}</p>
+                        {% if coin in BREAKOUT_STATUS and BREAKOUT_STATUS[coin]['message'] %}
+                            <p class="breakout-message">{{ BREAKOUT_STATUS[coin]['message'] }}</p>
                         {% endif %}
-                    </p>
-                    <p>Điểm vào lệnh: {{ entry }}</p>
-                    {% if coin in BREAKOUT_STATUS and BREAKOUT_STATUS[coin]['message'] %}
-                        <p class="breakout-message">{{ BREAKOUT_STATUS[coin]['message'] }}</p>
-                    {% endif %}
+                    </div>
                 </div>
             {% endfor %}
         {% else %}
@@ -243,7 +279,7 @@
         function updateLastUpdated() {
             const lastUpdatedElement = document.getElementById('last-updated');
             const serverTimeStr = lastUpdatedElement.textContent;
-            const serverTime = new Date(serverTimeStr + ' UTC'); // Thêm UTC để đảm bảo thời gian từ server được hiểu đúng
+            const serverTime = new Date(serverTimeStr + ' UTC');
             if (isNaN(serverTime)) {
                 console.error('Invalid date format for last_updated:', serverTimeStr);
                 return;
@@ -297,24 +333,50 @@
             }
         }
 
-        // Cập nhật giá theo thời gian thực
-        function updatePrices() {
+        // Cập nhật giá và biến động 24h
+        function updatePricesAndChange() {
+            // Cập nhật giá
             fetch('/get_prices')
                 .then(response => response.json())
                 .then(data => {
                     for (const [coin, price] of Object.entries(data)) {
-                        const priceCell = document.querySelector(`.price-cell[data-coin="${coin}"]`);
-                        if (priceCell) {
-                            priceCell.textContent = price.toFixed(2);
-                        }
+                        const priceCells = document.querySelectorAll(`.price-cell[data-coin="${coin}"]`);
+                        priceCells.forEach(cell => {
+                            cell.textContent = price.toFixed(2);
+                        });
                     }
                 })
                 .catch(error => console.error('Error updating prices:', error));
+
+            // Cập nhật biến động 24h
+            fetch('/get_price_change_24h')
+                .then(response => response.json())
+                .then(data => {
+                    for (const [coin, change] of Object.entries(data)) {
+                        const changeCells = document.querySelectorAll(`.change-24h[data-coin="${coin}"]`);
+                        changeCells.forEach(cell => {
+                            if (change !== null) {
+                                cell.textContent = change.toFixed(2) + '%';
+                                cell.classList.remove('positive', 'negative');
+                                cell.classList.add(change >= 0 ? 'positive' : 'negative');
+                            } else {
+                                cell.textContent = 'N/A';
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Error updating price change:', error));
         }
 
-        // Cập nhật giá mỗi 10 giây
-        setInterval(updatePrices, 10000);
-        updatePrices(); // Gọi ngay lần đầu
+        // Cập nhật giá và biến động mỗi 10 giây
+        setInterval(updatePricesAndChange, 10000);
+        updatePricesAndChange(); // Gọi ngay lần đầu
+
+        // Xử lý mở rộng/thu gọn chi tiết coin
+        function toggleDetails(element) {
+            const coinBox = element.closest('.coin-box');
+            coinBox.classList.toggle('expanded');
+        }
 
         function refreshAnalysis() {
             fetch('/analyze')
@@ -342,8 +404,12 @@
                                 notificationBtn.textContent = 'Đã nhận thông báo';
                                 notificationBtn.classList.add('disabled');
                                 alert('Đã bật thông báo thành công!');
+                                // Gửi thông báo thử nghiệm
+                                new Notification('Thông báo thử nghiệm', {
+                                    body: 'Thông báo đã được bật thành công!',
+                                });
                             } else {
-                                alert('Bạn đã từ chối nhận thông báo.');
+                                alert('Bạn đã từ chối nhận thông báo. Vui lòng kiểm tra cài đặt trình duyệt và hệ điều hành.');
                             }
                         });
                     } else {
@@ -381,10 +447,13 @@
         // Kiểm tra và gửi thông báo khi có đột phá
         function checkBreakoutNotifications() {
             const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+            console.log('Checking breakout notifications... Notifications enabled:', notificationsEnabled);
             if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+                console.log('Notification API supported and permission granted');
                 fetch('/get_prices')
                     .then(response => response.json())
                     .then(prices => {
+                        console.log('Fetched prices:', prices);
                         document.querySelectorAll('.coin-box').forEach(coinBox => {
                             const coin = coinBox.getAttribute('data-coin');
                             const price = prices[coin];
@@ -396,19 +465,25 @@
 
                                 if (price < support && !breakoutDot) {
                                     const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng hỗ trợ ${support.toFixed(2)}! Giá hiện tại: ${price}`;
+                                    console.log('Breakout detected (support):', message);
                                     coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
                                     coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
                                     new Notification(message);
                                 } else if (price > resistance && !breakoutDot) {
                                     const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng kháng cự ${resistance.toFixed(2)}! Giá hiện tại: ${price}`;
+                                    console.log('Breakout detected (resistance):', message);
                                     coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
                                     coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
                                     new Notification(message);
                                 }
+                            } else {
+                                console.log(`No price data for ${coin}`);
                             }
                         });
                     })
                     .catch(error => console.error('Error checking breakout:', error));
+            } else {
+                console.log('Notifications not enabled or permission not granted');
             }
         }
 

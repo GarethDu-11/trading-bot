@@ -29,8 +29,7 @@ def load_coins():
             {"symbol": "BTCUSDT", "tv_symbol": "BTCUSDT", "exchange": "BINANCE"},
             {"symbol": "ETHUSDT", "tv_symbol": "ETHUSDT", "exchange": "BINANCE"},
             {"symbol": "XRPUSDT", "tv_symbol": "XRPUSDT", "exchange": "BINANCE"},
-            {"symbol": "SOLUSDT", "tv_symbol": "SOLUSDT", "exchange": "BINANCE"},
-            {"symbol": "ALPHUSDT", "tv_symbol": "ALPHUSDT", "exchange": "MEXC"}
+            {"symbol": "SOLUSDT", "tv_symbol": "SOLUSDT", "exchange": "BINANCE"}
         ]
         with open(COINS_FILE, 'w') as f:
             json.dump(default_coins, f, indent=4)
@@ -301,6 +300,29 @@ def get_current_price(tv_symbol, exchange):
         logger.error(f"Lỗi khi lấy giá hiện tại cho {tv_symbol}: {e}")
         return None
 
+# Hàm lấy giá 24h trước để tính biến động
+def get_price_24h_ago(tv_symbol, exchange):
+    try:
+        if tv is None:
+            raise Exception("Không thể kết nối với TradingView")
+        
+        logger.info(f"Đang lấy giá 24h trước cho {tv_symbol}")
+        df = tv.get_hist(
+            symbol=tv_symbol,
+            exchange=exchange,
+            interval=Interval.in_1_hour,
+            n_bars=24
+        )
+        if df is None or df.empty:
+            logger.warning(f"Không có dữ liệu giá 24h trước cho {tv_symbol}")
+            return None
+        price_24h_ago = float(df['close'].iloc[0])
+        logger.info(f"Lấy giá 24h trước thành công cho {tv_symbol}: {price_24h_ago}")
+        return price_24h_ago
+    except Exception as e:
+        logger.error(f"Lỗi khi lấy giá 24h trước cho {tv_symbol}: {e}")
+        return None
+
 # Hàm kiểm tra hợp lưu (chỉ trả về Có/Không)
 def check_confluence(coin_symbol, tv_symbol, exchange, trend_4h):
     timeframes = ["5m", "15m", "1h", "1d", "1w"]
@@ -474,6 +496,25 @@ def get_prices():
         if price is not None:
             prices[coin_symbol] = price
     return jsonify(prices)
+
+# Thêm endpoint để lấy biến động giá 24h
+@app.route('/get_price_change_24h', methods=['GET'])
+def get_price_change_24h():
+    global COIN_LIST
+    COIN_LIST = load_coins()
+    price_changes = {}
+    for coin in COIN_LIST:
+        coin_symbol = coin["symbol"]
+        tv_symbol = coin["tv_symbol"]
+        exchange = coin["exchange"]
+        current_price = get_current_price(tv_symbol, exchange)
+        price_24h_ago = get_price_24h_ago(tv_symbol, exchange)
+        if current_price is not None and price_24h_ago is not None:
+            change_percent = ((current_price - price_24h_ago) / price_24h_ago) * 100
+            price_changes[coin_symbol] = change_percent
+        else:
+            price_changes[coin_symbol] = None
+    return jsonify(price_changes)
 
 # Thêm endpoint để thêm coin mới
 @app.route('/add_coin', methods=['POST'])
