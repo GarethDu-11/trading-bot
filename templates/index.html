@@ -91,15 +91,15 @@
             border-bottom: none;
             background-color: #fff;
             transition: background-color 0.3s;
-            border-radius: 20px; /* Bo tròn cả trên lẫn dưới */
-            margin: 0; /* Nối liền 2 tab */
+            border-radius: 20px;
+            margin: 0;
         }
         .tab-item:hover {
             background-color: #f1f1f1;
         }
         .tab-item.active {
             background-color: #f4f4f4;
-            text-shadow: 0 0 5px #ff00ff, 0 0 10px #00ffff, 0 0 15px #ff0000; /* Text sáng RGB neon khi chọn */
+            text-shadow: 0 0 5px #ff00ff, 0 0 10px #00ffff, 0 0 15px #ff0000;
         }
         .highlight {
             position: absolute;
@@ -231,15 +231,15 @@
         .reset-btn {
             margin-left: 10px;
             padding: 5px 10px;
-            background-color: #dc3545;
-            color: white;
-            border: none;
+            background-color: #ffffff; /* Màu trắng */
+            color: #dc3545; /* Màu chữ đỏ */
+            border: 1px solid #dc3545; /* Viền đỏ */
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
         }
         .reset-btn:hover {
-            background-color: #c82333;
+            background-color: #f8f9fa; /* Màu xám nhạt khi hover */
         }
         .refresh-btn {
             margin-left: 10px;
@@ -446,20 +446,13 @@
             <ul class="tab-items">
                 <li class="tab-item active" data-tab="0">Chỉ báo</li>
                 <li class="tab-item" data-tab="1">Tin tức</li>
+                <li class="tab-item" data-tab="2">Tùy chỉnh Coin</li>
             </ul>
             <div class="highlight" id="highlight"></div>
         </div>
         <div class="tab-content">
             <!-- Nội dung Chỉ báo -->
             <div class="tab-content-item active" id="indicators-tab">
-                <div class="search-section">
-                    <form class="search-form" id="addCoinForm">
-                        <input type="text" id="coin_name" name="coin_name" placeholder="Tên đồng coin (e.g., ADA)" required>
-                        <span>USDT</span>
-                        <input type="text" id="exchange" name="exchange" placeholder="Sàn giao dịch (e.g., BINANCE)" required>
-                        <button type="submit">Thêm</button>
-                    </form>
-                </div>
                 <div class="daily-analysis">
                     <h2>Phân tích hàng ngày</h2>
                     <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">Nhận thông báo</button>
@@ -533,6 +526,17 @@
             <!-- Nội dung Tin tức -->
             <div class="tab-content-item" id="news-tab">
                 <p>Chưa có tin tức nào để hiển thị.</p>
+            </div>
+            <!-- Nội dung Tùy chỉnh Coin -->
+            <div class="tab-content-item" id="customize-coin-tab">
+                <div class="search-section">
+                    <form class="search-form" id="addCoinForm">
+                        <input type="text" id="coin_name" name="coin_name" placeholder="Tên đồng coin (e.g., ADA)" required>
+                        <span>USDT</span>
+                        <input type="text" id="exchange" name="exchange" placeholder="Sàn giao dịch (e.g., BINANCE)" required>
+                        <button type="submit">Thêm</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -647,7 +651,7 @@
                 .catch(error => console.error('Error updating price change:', error));
         }
 
-        setInterval(updatePricesAndChange, 10000);
+        setInterval(updatePricesAndChange, 10000); // Cập nhật giá và % mỗi 10 giây
         updatePricesAndChange();
 
         function toggleDetails(element) {
@@ -655,11 +659,15 @@
             coinBox.classList.toggle('expanded');
         }
 
+        let lastAnalysisTime = Date.now(); // Thời gian phân tích cuối cùng
+        const FOUR_HOURS = 4 * 60 * 60 * 1000; // 4 giờ tính bằng milliseconds
+
         function refreshAnalysis() {
             fetch('/analyze')
                 .then(response => response.text())
                 .then(data => {
-                    console.log(data); // Log để debug, không hiển thị alert
+                    console.log(data);
+                    lastAnalysisTime = Date.now(); // Cập nhật thời gian phân tích
                     location.reload();
                 })
                 .catch(error => console.error('Error:', error));
@@ -736,6 +744,7 @@
                 fetch('/get_prices')
                     .then(response => response.json())
                     .then(prices => {
+                        let breakoutOccurred = false;
                         document.querySelectorAll('.coin-box').forEach(coinBox => {
                             const coin = coinBox.getAttribute('data-coin');
                             const price = prices[coin];
@@ -743,33 +752,46 @@
                                 const support = parseFloat(coinBox.querySelector('.support').textContent);
                                 const resistance = parseFloat(coinBox.querySelector('.resistance').textContent);
                                 const breakoutDot = coinBox.querySelector('.breakout-dot');
-                                const breakoutMessage = coinBox.querySelector('.breakout-message');
 
                                 if (price < support && !breakoutDot) {
                                     const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng hỗ trợ ${support.toFixed(2)}! Giá hiện tại: ${price}`;
                                     coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
                                     coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
                                     new Notification(message);
+                                    breakoutOccurred = true;
                                 } else if (price > resistance && !breakoutDot) {
                                     const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng kháng cự ${resistance.toFixed(2)}! Giá hiện tại: ${price}`;
                                     coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
                                     coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
                                     new Notification(message);
+                                    breakoutOccurred = true;
                                 }
                             }
                         });
+                        // Nếu có phá vỡ, phân tích lại toàn bộ
+                        if (breakoutOccurred) {
+                            refreshAnalysis();
+                        }
                     })
                     .catch(error => console.error('Error checking breakout:', error));
             }
+
+            // Kiểm tra nếu quá 4 giờ kể từ lần phân tích cuối cùng
+            const currentTime = Date.now();
+            if (currentTime - lastAnalysisTime >= FOUR_HOURS) {
+                refreshAnalysis();
+            }
         }
 
-        setInterval(checkBreakoutNotifications, 60000);
+        setInterval(checkBreakoutNotifications, 60000); // Kiểm tra phá vỡ mỗi 1 phút
         checkBreakoutNotifications();
 
-        // Tự động làm mới phân tích khi vào trang
-        window.addEventListener('load', function() {
+        // Chỉ phân tích 1 lần khi vào trang
+        let hasAnalyzed = localStorage.getItem('hasAnalyzed') === 'true';
+        if (!hasAnalyzed) {
             refreshAnalysis();
-        });
+            localStorage.setItem('hasAnalyzed', 'true');
+        }
     </script>
 </body>
 </html>
