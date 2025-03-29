@@ -11,70 +11,94 @@
             margin: 20px;
             background-color: #f4f4f4;
         }
+
+        /* Logo */
         .header-logo {
             text-align: center;
             margin-bottom: 20px;
         }
         .header-logo img {
-            max-width: 50%; /* Điều chỉnh kích thước hình ảnh để không quá lớn */
+            max-width: 50%;
             height: auto;
             display: block;
-            margin: 0 auto; /* Căn giữa hình ảnh */
+            margin: 0 auto;
         }
         @media (max-width: 768px) {
             .header-logo img {
-                max-width: 80%; /* Tăng kích thước trên thiết bị di động */
+                max-width: 80%;
             }
         }
+
+        /* Form nhập liệu */
         .search-section {
             text-align: center;
             margin: 20px 0;
         }
         .search-form {
-            display: inline-block;
-            width: 60%;
+            display: flex;
+            justify-content: center;
+            width: 100%;
             max-width: 600px;
+            margin: 0 auto;
         }
         .search-form input[type="text"] {
-            width: 40%;
-            padding: 10px;
+            width: 35%;
+            padding: 8px;
             border: 1px solid #ddd;
             border-radius: 20px 0 0 20px;
             outline: none;
-            font-size: 16px;
+            font-size: 14px;
         }
         .search-form input[type="text"]:focus {
             border-color: #007bff;
         }
         .search-form span {
-            padding: 10px;
+            padding: 8px;
             background-color: #f1f1f1;
             border: 1px solid #ddd;
             border-left: none;
             border-right: none;
+            font-size: 14px;
         }
         .search-form input[type="text"]:last-of-type {
             border-radius: 0;
             border-left: none;
             border-right: none;
-            width: 40%;
+            width: 35%;
         }
         .search-form button {
-            padding: 10px 20px;
+            padding: 8px 16px;
             background-color: #007bff;
             color: white;
             border: 1px solid #ddd;
             border-left: none;
             border-radius: 0 20px 20px 0;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
         }
         .search-form button:hover {
             background-color: #0056b3;
         }
+        @media (max-width: 768px) {
+            .search-form input[type="text"] {
+                width: 30%;
+                padding: 6px;
+                font-size: 12px;
+            }
+            .search-form span {
+                padding: 6px;
+                font-size: 12px;
+            }
+            .search-form button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+
+        /* Phần Daily Analysis */
         .section {
             margin-bottom: 30px;
-            padding: 20px;
+            padding: 15px;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -82,26 +106,51 @@
         .section h2 {
             color: #007bff;
             margin-bottom: 10px;
+            font-size: 1.5em;
             display: inline-block;
         }
         .notification-btn {
             margin-left: 10px;
             padding: 5px 10px;
-            background-color: #ffc107; /* Màu vàng cho "Nhận thông báo" */
+            background-color: #ffc107;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 14px;
         }
         .notification-btn:hover {
-            background-color: #e0a800; /* Màu vàng đậm hơn khi hover */
+            background-color: #e0a800;
         }
         .notification-btn.disabled {
-            background-color: #dc3545; /* Màu đỏ cho "Đã nhận thông báo" */
+            background-color: #dc3545;
         }
         .notification-btn.disabled:hover {
-            background-color: #c82333; /* Màu đỏ đậm hơn khi hover */
+            background-color: #c82333;
         }
+        .last-updated {
+            font-style: italic;
+            color: #666;
+            font-size: 14px;
+        }
+        @media (max-width: 768px) {
+            .section {
+                padding: 10px;
+            }
+            .section h2 {
+                font-size: 1.2em;
+            }
+            .notification-btn {
+                margin-left: 5px;
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+            .last-updated {
+                font-size: 12px;
+            }
+        }
+
+        /* Box coin */
         .coin-box {
             position: relative;
             margin-bottom: 10px;
@@ -122,16 +171,20 @@
         .coin-header h3 {
             margin: 0;
             font-size: 1.2em;
+            display: flex;
+            align-items: center;
         }
         .coin-details {
             display: none;
             margin-top: 10px;
+            font-size: 14px;
         }
         .coin-box.expanded .coin-details {
             display: block;
         }
         .coin-box p {
             margin: 5px 0;
+            font-size: 14px;
         }
         .remove-coin {
             position: absolute;
@@ -161,10 +214,7 @@
             color: #dc3545;
             font-weight: bold;
             margin-top: 10px;
-        }
-        .last-updated {
-            font-style: italic;
-            color: #666;
+            font-size: 14px;
         }
         .trend-up {
             color: green;
@@ -206,6 +256,50 @@
         .change-24h.negative {
             color: red;
         }
+        @media (max-width: 768px) {
+            .coin-box {
+                padding: 8px;
+            }
+            .coin-box.expanded {
+                padding: 10px;
+            }
+            .coin-header h3 {
+                font-size: 1em;
+            }
+            .coin-details {
+                font-size: 12px;
+            }
+            .coin-box p {
+                font-size: 12px;
+            }
+            .remove-coin {
+                top: 5px;
+                right: 5px;
+                padding: 1px 4px;
+                font-size: 0.7em;
+            }
+            .breakout-dot {
+                top: 5px;
+                right: 30px;
+                width: 8px;
+                height: 8px;
+            }
+            .breakout-message {
+                font-size: 12px;
+            }
+            .price-cell {
+                margin-left: 5px;
+                font-size: 0.9em;
+            }
+            .change-24h {
+                margin-left: 5px;
+                font-size: 0.9em;
+            }
+            .coin-icon {
+                width: 16px;
+                height: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -223,9 +317,9 @@
     </div>
 
     <div class="section">
-        <h2>Daily Analysis</h2>
+        <h2>Phân tích hàng ngày</h2>
         <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">Nhận thông báo</button>
-        <p class="last-updated">Last updated: <span id="last-updated">{{ last_updated }}</span></p>
+        <p class="last-updated">Cập nhật lần cuối: <span id="last-updated">{{ last_updated }}</span></p>
         {% if analysis_results %}
             {% for result in analysis_results %}
                 {% set lines = result.split('\n') %}
@@ -247,7 +341,15 @@
                     {% endif %}
                     <div class="coin-header" onclick="toggleDetails(this)">
                         <h3>
-                            <img src="{{ 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' if coin == 'BTCUSDT' else 'https://cryptologos.cc/logos/ethereum-eth-logo.png' if coin == 'ETHUSDT' else 'https://cryptologos.cc/logos/xrp-xrp-logo.png' if coin == 'XRPUSDT' else 'https://cryptologos.cc/logos/solana-sol-logo.png' if coin == 'SOLUSDT' else 'https://cryptologos.cc/logos/' + coin_base.lower() + '-' + coin_base.lower() + '-logo.png' }}"
+                            {% set coin_mappings = {
+                                'ALPH': 'alephium',
+                                'BTC': 'bitcoin',
+                                'ETH': 'ethereum',
+                                'XRP': 'xrp',
+                                'SOL': 'solana'
+                            } %}
+                            {% set mapped_coin = coin_mappings.get(coin_base, coin_base.lower()) %}
+                            <img src="https://cryptologos.cc/logos/{{ mapped_coin }}-{{ coin_base.lower() }}-logo.png"
                                  class="coin-icon" alt="{{ coin }} icon"
                                  onerror="this.style.display='none';">
                             {{ coin }}
@@ -275,12 +377,12 @@
                 </div>
             {% endfor %}
         {% else %}
-            <p>No analysis results available yet.</p>
+            <p>Chưa có kết quả phân tích.</p>
         {% endif %}
     </div>
 
     <div class="section">
-        <button onclick="refreshAnalysis()">Refresh Analysis</button>
+        <button onclick="refreshAnalysis()">Làm mới phân tích</button>
     </div>
 
     <script>
@@ -355,7 +457,9 @@
                         });
                     }
                 })
-                .catch(error => console.error('Error updating prices:', error));
+                .catch
+
+(error => console.error('Error updating prices:', error));
 
             // Cập nhật biến động 24h
             fetch('/get_price_change_24h')
