@@ -62,7 +62,7 @@ except Exception as e:
     logger.error(f"Lỗi khi kết nối với TradingView: {e}")
     tv = None
 
-# Hàm lấy dữ liệu từ TradingView (giữ nguyên từ mã cũ)
+# Hàm lấy dữ liệu từ TradingView
 def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h", limit=45):
     try:
         if tv is None:
@@ -208,6 +208,12 @@ def remove_coin():
         del BREAKOUT_STATUS[symbol]
     daily_analysis()
     return jsonify({"status": "success", "message": f"Đã xóa {symbol} khỏi danh sách theo dõi!"})
+
+@app.route('/analyze', methods=['GET'])
+def analyze():
+    logger.info("Gọi phân tích thủ công qua /analyze")
+    daily_analysis()
+    return "Phân tích đã được thực hiện. Vui lòng làm mới trang để xem kết quả."
 
 def check_breakout():
     global last_analysis_time
