@@ -31,18 +31,14 @@
             padding: 10px 20px;
             margin: 0 10px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 25px; /* Bo tròn góc */
+            border-radius: 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
         }
-        .tab:hover {
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        }
-        .tab.active {
-            background: rgba(0, 0, 0, 0.8);
-            box-shadow: 0 0 15px #ff00ff, 0 0 25px #00ffff, 0 0 35px #ff0000; /* Hiệu ứng RGB neon */
-            color: #fff;
+        .tab:hover, .tab.active {
+            background: rgba(0, 255, 204, 0.2);
+            box-shadow: 0 0 15px #00ffcc;
+            color: #00ffcc;
         }
         .content {
             background: rgba(0, 0, 0, 0.7);
