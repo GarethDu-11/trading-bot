@@ -16,16 +16,64 @@
         .header-logo {
             text-align: center;
             margin-bottom: 20px;
+            position: relative;
         }
-        .header-logo img {
-            max-width: 50%;
-            height: auto;
-            display: block;
-            margin: 0 auto;
+        .logo-container {
+            display: inline-block;
+            position: relative;
         }
+        .logo-bot, .logo-trading {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 3em;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+        .logo-bot {
+            color: #00c4ff; /* Màu xanh lam */
+            text-shadow: 
+                2px 2px 0 #008bb5, 
+                4px 4px 0 #006d8e, 
+                6px 6px 0 #004f67; /* Hiệu ứng 3D */
+        }
+        .logo-trading {
+            color: #ff6200; /* Màu cam */
+            text-shadow: 
+                2px 2px 0 #cc4e00, 
+                4px 4px 0 #993b00, 
+                6px 6px 0 #662800; /* Hiệu ứng 3D */
+        }
+        /* Thêm các ký hiệu "+" để trang trí */
+        .logo-container::before, .logo-container::after {
+            content: '+';
+            position: absolute;
+            color: #00c4ff;
+            font-size: 1.5em;
+            opacity: 0.7;
+        }
+        .logo-container::before {
+            top: -20px;
+            left: -20px;
+        }
+        .logo-container::after {
+            bottom: -20px;
+            right: -20px;
+        }
+        /* Tối ưu cho điện thoại */
         @media (max-width: 768px) {
-            .header-logo img {
-                max-width: 80%;
+            .logo-bot, .logo-trading {
+                font-size: 2em;
+            }
+            .logo-container::before, .logo-container::after {
+                font-size: 1em;
+            }
+            .logo-container::before {
+                top: -10px;
+                left: -10px;
+            }
+            .logo-container::after {
+                bottom: -10px;
+                right: -10px;
             }
         }
 
@@ -55,7 +103,7 @@
         .search-form span {
             padding: 8px;
             background-color: #f1f1f1;
-            border: 1px solid #ddd;
+            border: 1px solid # DDT;
             border-left: none;
             border-right: none;
             font-size: 14px;
@@ -304,7 +352,10 @@
 </head>
 <body>
     <div class="header-logo">
-        <img src="{{ url_for('static', filename='bot_trading_logo.png') }}" alt="BOT Giao Dịch">
+        <div class="logo-container">
+            <span class="logo-bot">BOT</span>
+            <span class="logo-trading">TRADING</span>
+        </div>
     </div>
     
     <div class="search-section">
@@ -457,9 +508,7 @@
                         });
                     }
                 })
-                .catch
-
-(error => console.error('Error updating prices:', error));
+                .catch(error => console.error('Error updating prices:', error));
 
             // Cập nhật biến động 24h
             fetch('/get_price_change_24h')
