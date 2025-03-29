@@ -24,7 +24,6 @@ def load_coins():
         with open(COINS_FILE, 'r') as f:
             return json.load(f)
     else:
-        # Danh sách coin mặc định nếu file không tồn tại
         default_coins = [
             {"symbol": "BTCUSDT", "tv_symbol": "BTCUSDT", "exchange": "BINANCE"},
             {"symbol": "ETHUSDT", "tv_symbol": "ETHUSDT", "exchange": "BINANCE"},
@@ -90,7 +89,6 @@ def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h", lim
             logger.warning(f"Không có dữ liệu nến cho {coin_symbol}")
             return None, None, None, None, None
 
-        # Đổi tên cột để khớp với logic hiện tại
         df = df.reset_index()
         df = df.rename(columns={
             'datetime': 'timestamp',
@@ -187,7 +185,7 @@ def identify_candlestick_pattern(df, price_trend):
 
 # Hàm nhận diện mẫu hình giá phức tạp
 def identify_price_pattern(df):
-    if len(df) < 20:  # Giảm yêu cầu tối thiểu để phát hiện mẫu hình
+    if len(df) < 20:
         return None, 0, None, None, None, None
     
     highs = df['high'].values
@@ -323,7 +321,7 @@ def get_price_24h_ago(tv_symbol, exchange):
         logger.error(f"Lỗi khi lấy giá 24h trước cho {tv_symbol}: {e}")
         return None
 
-# Hàm kiểm tra hợp lưu (chỉ trả về Có/Không)
+# Hàm kiểm tra hợp lưu
 def check_confluence(coin_symbol, tv_symbol, exchange, trend_4h):
     timeframes = ["5m", "15m", "1h", "1d", "1w"]
     for timeframe in timeframes:
@@ -337,16 +335,14 @@ def check_confluence(coin_symbol, tv_symbol, exchange, trend_4h):
 # Hàm phân tích và đưa ra gợi ý hàng ngày
 def daily_analysis():
     global analysis_results, last_updated, last_analysis_time, COIN_LIST, PRICE_REPORTED, BREAKOUT_STATUS
-    # Cập nhật COIN_LIST từ file JSON
     COIN_LIST = load_coins()
-    # Cập nhật PRICE_REPORTED và BREAKOUT_STATUS cho các coin mới
     for coin in COIN_LIST:
         if coin["symbol"] not in PRICE_REPORTED:
             PRICE_REPORTED[coin["symbol"]] = False
         if coin["symbol"] not in BREAKOUT_STATUS:
             BREAKOUT_STATUS[coin["symbol"]] = {"support": False, "resistance": False, "message": ""}
     
-    analysis_results = []  # Xóa kết quả cũ
+    analysis_results = []
     result = "PHÂN TÍCH HÀNG NGÀY (6:00 AM)\n\n"
     logger.info("Bắt đầu phân tích hàng ngày")
     for coin in COIN_LIST:
@@ -360,7 +356,7 @@ def daily_analysis():
                 result += error_msg
                 analysis_results.append(error_msg)
                 logger.warning(f"Không thể phân tích {coin_symbol} do thiếu dữ liệu")
-                continue  # Bỏ qua coin này và tiếp tục với coin tiếp theo
+                continue
 
             price_pattern, similarity, key_level, price_trend, pattern_low, pattern_high = identify_price_pattern(df)
             price = get_current_price(tv_symbol, exchange)
@@ -427,7 +423,6 @@ def daily_analysis():
             result += coin_result
             analysis_results.append(coin_result)
             
-            # Cập nhật SUPPORT_RESISTANCE
             SUPPORT_RESISTANCE[coin_symbol] = (support_nearest, resistance_nearest)
             
             PRICE_REPORTED[coin_symbol] = True
@@ -437,7 +432,7 @@ def daily_analysis():
             logger.error(error_msg)
             result += error_msg
             analysis_results.append(error_msg)
-            continue  # Bỏ qua coin này và tiếp tục với coin tiếp theo
+            continue
 
     last_updated = time.strftime("%Y-%m-%d %H:%M:%S")
     last_analysis_time = time.time()
@@ -474,14 +469,12 @@ def check_breakout():
         except Exception as e:
             logger.error(f"Lỗi khi kiểm tra breakout cho {coin_symbol}: {e}")
     
-    # Nếu có phá vỡ, chạy lại phân tích ngay lập tức
     if breakout_detected:
         logger.info("Phát hiện phá vỡ, chạy lại phân tích...")
         daily_analysis()
     else:
-        # Nếu không có phá vỡ, kiểm tra thời gian phân tích cuối cùng
         current_time = time.time()
-        if current_time - last_analysis_time >= 4 * 3600:  # 4 giờ
+        if current_time - last_analysis_time >= 4 * 3600:
             logger.info("Đã qua 4 giờ, chạy lại phân tích...")
             daily_analysis()
 
@@ -489,7 +482,7 @@ def check_breakout():
 @app.route('/get_prices', methods=['GET'])
 def get_prices():
     global COIN_LIST
-    COIN_LIST = load_coins()  # Cập nhật COIN_LIST để đảm bảo bao gồm coin mới
+    COIN_LIST = load_coins()
     prices = {}
     for coin in COIN_LIST:
         coin_symbol = coin["symbol"]
@@ -527,26 +520,21 @@ def add_coin():
     symbol = data.get('symbol').upper()
     exchange = data.get('exchange').upper()
 
-    # Kiểm tra dữ liệu đầu vào
     if not symbol or not exchange:
         return jsonify({"status": "error", "message": "Vui lòng điền đầy đủ thông tin!"})
 
-    # Thêm hậu tố USDT nếu chưa có
     if not symbol.endswith('USDT'):
         symbol += 'USDT'
 
-    # Kiểm tra xem coin đã tồn tại chưa
     for coin in COIN_LIST:
         if coin["symbol"] == symbol:
             return jsonify({"status": "error", "message": f"{symbol} đã tồn tại trong danh sách!"})
 
-    # Thêm coin mới vào danh sách
     new_coin = {"symbol": symbol, "tv_symbol": symbol, "exchange": exchange}
     COIN_LIST.append(new_coin)
     save_coins(COIN_LIST)
     logger.info(f"Đã thêm coin mới: {symbol}")
 
-    # Chạy lại phân tích
     daily_analysis()
     return jsonify({"status": "success", "message": f"Đã thêm {symbol} vào danh sách theo dõi!"})
 
@@ -556,16 +544,13 @@ def remove_coin():
     global COIN_LIST
     symbol = request.form.get('symbol')
 
-    # Kiểm tra dữ liệu đầu vào
     if not symbol:
         return jsonify({"status": "error", "message": "Không tìm thấy coin để xóa!"})
 
-    # Xóa coin khỏi danh sách
     COIN_LIST = [coin for coin in COIN_LIST if coin["symbol"] != symbol]
     save_coins(COIN_LIST)
     logger.info(f"Đã xóa coin: {symbol}")
 
-    # Xóa các trạng thái liên quan
     if symbol in SUPPORT_RESISTANCE:
         del SUPPORT_RESISTANCE[symbol]
     if symbol in PRICE_REPORTED:
@@ -573,7 +558,6 @@ def remove_coin():
     if symbol in BREAKOUT_STATUS:
         del BREAKOUT_STATUS[symbol]
 
-    # Chạy lại phân tích
     daily_analysis()
     return jsonify({"status": "success", "message": f"Đã xóa {symbol} khỏi danh sách theo dõi!"})
 
@@ -603,7 +587,7 @@ def initialize_support_resistance():
 # Route chính để hiển thị kết quả trên web
 @app.route('/')
 def index():
-    return render_template('index.html', analysis_results=analysis_results, last_updated=last_updated)
+    return render_template('index.html', analysis_results=analysis_results, last_updated=last_updated, BREAKOUT_STATUS=BREAKOUT_STATUS)
 
 # Route để gọi phân tích thủ công
 @app.route('/analyze', methods=['GET'])
@@ -616,28 +600,21 @@ def analyze():
 def startup():
     logger.info("Khởi động ứng dụng")
     
-    # Khởi tạo SUPPORT_RESISTANCE
     initialize_support_resistance()
     
-    # Chạy phân tích ban đầu
     daily_analysis()
     
-    # Khởi động lịch trình
     schedule_thread = Thread(target=run_schedule)
     schedule_thread.daemon = True
     schedule_thread.start()
 
-# Chạy startup trong một thread riêng
 startup_thread = Thread(target=startup)
 startup_thread.start()
 
 if __name__ == "__main__":
-    # Chạy phân tích ban đầu (dùng cho môi trường cục bộ)
     daily_analysis()
     
-    # Khởi động lịch trình
     schedule_thread = Thread(target=run_schedule)
     schedule_thread.start()
     
-    # Chạy Flask app
     app.run(debug=True, host='0.0.0.0', port=5000)
