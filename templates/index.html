@@ -193,29 +193,18 @@
             }
         }
 
-        /* Phần Daily Analysis và News */
-        .section-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-        }
-        .section {
-            flex: 1;
-            margin: 0 10px;
+        /* Phần Daily Analysis */
+        .daily-analysis {
+            margin-bottom: 20px;
             padding: 15px;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .section h2 {
+        .daily-analysis h2 {
             color: #007bff;
             margin-bottom: 10px;
             font-size: 1.5em;
-            cursor: pointer;
-            display: inline-block;
-        }
-        .section h2:hover {
-            color: #0056b3;
         }
         .notification-btn {
             margin-left: 10px;
@@ -267,21 +256,11 @@
             color: #666;
             font-size: 14px;
         }
-        .section-content {
-            display: none;
-        }
-        .section-content.active {
-            display: block;
-        }
         @media (max-width: 768px) {
-            .section-container {
-                flex-direction: column;
-            }
-            .section {
-                margin: 10px 0;
+            .daily-analysis {
                 padding: 10px;
             }
-            .section h2 {
+            .daily-analysis h2 {
                 font-size: 1.2em;
             }
             .notification-btn, .reset-btn, .refresh-btn {
@@ -464,80 +443,72 @@
             <div class="highlight" id="highlight"></div>
         </div>
         <div class="tab-content">
-            <div class="tab-content-item active">Nội dung chỉ báo</div>
-            <div class="tab-content-item">Nội dung tin tức</div>
-        </div>
-    </div>
-
-    <div class="search-section">
-        <form class="search-form" id="addCoinForm">
-            <input type="text" id="coin_name" name="coin_name" placeholder="Tên đồng coin (e.g., ADA)" required>
-            <span>USDT</span>
-            <input type="text" id="exchange" name="exchange" placeholder="Sàn giao dịch (e.g., BINANCE)" required>
-            <button type="submit">Thêm</button>
-        </form>
-    </div>
-
-    <div class="section-container">
-        <div class="section" id="daily-analysis">
-            <h2 onclick="toggleSection('daily-analysis-content')">Phân tích hàng ngày</h2>
-            <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">Nhận thông báo</button>
-            <button class="reset-btn" onclick="resetAnalysis()">Reset</button>
-            <button class="refresh-btn" onclick="refreshAnalysis()">Làm mới phân tích</button>
-            <div class="section-content active" id="daily-analysis-content">
-                <p class="last-updated">Cập nhật lần cuối: <span id="last-updated">{{ last_updated }}</span></p>
-                {% if analysis_results %}
-                    {% for result in analysis_results %}
-                        {% set lines = result.split('\n') %}
-                        {% set coin = lines[0].split(':')[0] %}
-                        {% set price = lines[1].split(': ')[1] if 'Giá hiện tại' in lines[1] else 'Không có dữ liệu' %}
-                        {% set nearest_support = lines[2].split(': ')[1].split(', ')[0] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
-                        {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
-                        {% set strong_support = lines[3].split(': ')[1].split(', ')[0] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
-                        {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
-                        <div class="coin-box" data-coin="{{ coin }}">
-                            <button class="remove-coin" onclick="confirmRemoveCoin('{{ coin }}')">X</button>
-                            {% if coin in BREAKOUT_STATUS and (BREAKOUT_STATUS[coin]['support'] or BREAKOUT_STATUS[coin]['resistance']) %}
-                                <div class="breakout-dot"></div>
-                            {% endif %}
-                            <div class="coin-header" onclick="toggleDetails(this)">
-                                <h3>
-                                    {% set coin_mappings = {
-                                        'ALPH': 'alephium',
-                                        'BTC': 'bitcoin',
-                                        'ETH': 'ethereum',
-                                        'XRP': 'xrp',
-                                        'SOL': 'solana'
-                                    } %}
-                                    {% set mapped_coin = coin_mappings.get(coin.replace('USDT', ''), coin.replace('USDT', '').lower()) %}
-                                    <img src="https://cryptologos.cc/logos/{{ mapped_coin }}-{{ coin.replace('USDT', '').lower() }}-logo.png"
-                                         class="coin-icon" alt="{{ coin }} icon"
-                                         onerror="this.style.display='none';">
-                                    {{ coin }}
-                                    <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span>
-                                    <span class="change-24h" data-coin="{{ coin }}">N/A</span>
-                                </h3>
-                            </div>
-                            <div class="coin-details">
-                                <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
-                                <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
-                                <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
-                                {% if coin in BREAKOUT_STATUS and BREAKOUT_STATUS[coin]['message'] %}
-                                    <p class="breakout-message">{{ BREAKOUT_STATUS[coin]['message'] }}</p>
+            <!-- Nội dung Chỉ báo -->
+            <div class="tab-content-item active" id="indicators-tab">
+                <div class="search-section">
+                    <form class="search-form" id="addCoinForm">
+                        <input type="text" id="coin_name" name="coin_name" placeholder="Tên đồng coin (e.g., ADA)" required>
+                        <span>USDT</span>
+                        <input type="text" id="exchange" name="exchange" placeholder="Sàn giao dịch (e.g., BINANCE)" required>
+                        <button type="submit">Thêm</button>
+                    </form>
+                </div>
+                <div class="daily-analysis">
+                    <h2>Phân tích hàng ngày</h2>
+                    <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">Nhận thông báo</button>
+                    <button class="reset-btn" onclick="resetAnalysis()">Reset</button>
+                    <button class="refresh-btn" onclick="refreshAnalysis()">Làm mới phân tích</button>
+                    <p class="last-updated">Cập nhật lần cuối: <span id="last-updated">{{ last_updated }}</span></p>
+                    {% if analysis_results %}
+                        {% for result in analysis_results %}
+                            {% set lines = result.split('\n') %}
+                            {% set coin = lines[0].split(':')[0] %}
+                            {% set price = lines[1].split(': ')[1] if 'Giá hiện tại' in lines[1] else 'Không có dữ liệu' %}
+                            {% set nearest_support = lines[2].split(': ')[1].split(', ')[0] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
+                            {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
+                            {% set strong_support = lines[3].split(': ')[1].split(', ')[0] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
+                            {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
+                            <div class="coin-box" data-coin="{{ coin }}">
+                                <button class="remove-coin" onclick="confirmRemoveCoin('{{ coin }}')">X</button>
+                                {% if coin in BREAKOUT_STATUS and (BREAKOUT_STATUS[coin]['support'] or BREAKOUT_STATUS[coin]['resistance']) %}
+                                    <div class="breakout-dot"></div>
                                 {% endif %}
+                                <div class="coin-header" onclick="toggleDetails(this)">
+                                    <h3>
+                                        {% set coin_mappings = {
+                                            'ALPH': 'alephium',
+                                            'BTC': 'bitcoin',
+                                            'ETH': 'ethereum',
+                                            'XRP': 'xrp',
+                                            'SOL': 'solana'
+                                        } %}
+                                        {% set mapped_coin = coin_mappings.get(coin.replace('USDT', ''), coin.replace('USDT', '').lower()) %}
+                                        <img src="https://cryptologos.cc/logos/{{ mapped_coin }}-{{ coin.replace('USDT', '').lower() }}-logo.png"
+                                             class="coin-icon" alt="{{ coin }} icon"
+                                             onerror="this.style.display='none';">
+                                        {{ coin }}
+                                        <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span>
+                                        <span class="change-24h" data-coin="{{ coin }}">N/A</span>
+                                    </h3>
+                                </div>
+                                <div class="coin-details">
+                                    <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
+                                    <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
+                                    <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
+                                    {% if coin in BREAKOUT_STATUS and BREAKOUT_STATUS[coin]['message'] %}
+                                        <p class="breakout-message">{{ BREAKOUT_STATUS[coin]['message'] }}</p>
+                                    {% endif %}
+                                </div>
                             </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>Chưa có kết quả phân tích.</p>
-                {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p>Chưa có kết quả phân tích.</p>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-
-        <div class="section" id="news">
-            <h2 onclick="toggleSection('news-content')">Tin tức</h2>
-            <div class="section-content" id="news-content">
-                <p>Nội dung tin tức sẽ được hiển thị tại đây (placeholder).</p>
+            <!-- Nội dung Tin tức -->
+            <div class="tab-content-item" id="news-tab">
+                <p>Chưa có tin tức nào để hiển thị.</p>
             </div>
         </div>
     </div>
@@ -770,12 +741,6 @@
 
         setInterval(checkBreakoutNotifications, 60000);
         checkBreakoutNotifications();
-
-        // Toggle section content
-        function toggleSection(sectionId) {
-            const content = document.getElementById(sectionId);
-            content.classList.toggle('active');
-        }
     </script>
 </body>
 </html>
