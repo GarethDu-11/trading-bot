@@ -347,6 +347,10 @@
             color: red;
             font-weight: bold;
         }
+        .trend-sideways {
+            color: #666;
+            font-weight: bold;
+        }
         .support {
             color: green;
             font-weight: bold;
@@ -468,6 +472,11 @@
                             {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
                             {% set strong_support = lines[3].split(': ')[1].split(', ')[0] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
                             {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
+                            {% set pattern_4h = lines[4].split(': ')[1] if 'Mẫu nến 4H' in lines[4] else 'N/A' %}
+                            {% set pattern_1d = lines[5].split(': ')[1].split(' (')[0] if 'Mẫu hình giá 1D' in lines[5] else 'N/A' %}
+                            {% set similarity = lines[5].split('(')[1].split('%')[0] if 'Mẫu hình giá 1D' in lines[5] and '(' in lines[5] else '0' %}
+                            {% set confluence = lines[6].split(': ')[1] if 'Hợp lưu' in lines[6] else 'N/A' %}
+                            {% set trend = lines[7].split(': ')[1] if 'Xu hướng chung' in lines[7] else 'N/A' %}
                             <div class="coin-box" data-coin="{{ coin }}">
                                 <button class="remove-coin" onclick="confirmRemoveCoin('{{ coin }}')">X</button>
                                 {% if coin in BREAKOUT_STATUS and (BREAKOUT_STATUS[coin]['support'] or BREAKOUT_STATUS[coin]['resistance']) %}
@@ -495,6 +504,18 @@
                                     <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
                                     <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
                                     <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
+                                    <p>Mẫu nến 4H: {{ pattern_4h }}</p>
+                                    <p>Mẫu hình giá 1D: {{ pattern_1d }} ({{ similarity }}% tương đồng)</p>
+                                    <p>Hợp lưu: {{ confluence }}</p>
+                                    <p>Xu hướng chung: 
+                                        {% if 'tăng' in trend.lower() %}
+                                            <span class="trend-up">{{ trend }}</span>
+                                        {% elif 'giảm' in trend.lower() %}
+                                            <span class="trend-down">{{ trend }}</span>
+                                        {% else %}
+                                            <span class="trend-sideways">{{ trend }}</span>
+                                        {% endif %}
+                                    </p>
                                     {% if coin in BREAKOUT_STATUS and BREAKOUT_STATUS[coin]['message'] %}
                                         <p class="breakout-message">{{ BREAKOUT_STATUS[coin]['message'] }}</p>
                                     {% endif %}
