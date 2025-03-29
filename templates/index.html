@@ -91,13 +91,15 @@
             border-bottom: none;
             background-color: #fff;
             transition: background-color 0.3s;
-            border-radius: 20px 20px 0 0; /* Bo tròn góc trên */
+            border-radius: 20px; /* Bo tròn cả trên lẫn dưới */
+            margin: 0; /* Nối liền 2 tab */
         }
         .tab-item:hover {
             background-color: #f1f1f1;
         }
         .tab-item.active {
             background-color: #f4f4f4;
+            text-shadow: 0 0 5px #ff00ff, 0 0 10px #00ffff, 0 0 15px #ff0000; /* Text sáng RGB neon khi chọn */
         }
         .highlight {
             position: absolute;
@@ -657,7 +659,7 @@
             fetch('/analyze')
                 .then(response => response.text())
                 .then(data => {
-                    alert(data);
+                    console.log(data); // Log để debug, không hiển thị alert
                     location.reload();
                 })
                 .catch(error => console.error('Error:', error));
@@ -763,6 +765,11 @@
 
         setInterval(checkBreakoutNotifications, 60000);
         checkBreakoutNotifications();
+
+        // Tự động làm mới phân tích khi vào trang
+        window.addEventListener('load', function() {
+            refreshAnalysis();
+        });
     </script>
 </body>
 </html>
