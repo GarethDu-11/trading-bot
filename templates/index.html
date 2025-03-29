@@ -15,7 +15,8 @@
         }
         h1 {
             text-align: center;
-            color: #00ffcc;
+            color: #fff;
+            text-shadow: 0 0 10px #00ffcc;
         }
         .container {
             max-width: 1200px;
@@ -63,14 +64,16 @@
         input, button {
             padding: 10px;
             margin: 5px;
+            border-radius: 10px;
             border: none;
         }
         button {
             background: #00ffcc;
             cursor: pointer;
+            transition: all 0.3s;
         }
         button:hover {
-            background: #00cc99;
+            box-shadow: 0 0 15px #00ffcc;
         }
         .breakout-alert {
             color: #ff3333;
@@ -84,8 +87,7 @@
         <h1>Trading Bot Analysis</h1>
         <div class="tabs">
             <div class="tab active" onclick="showTab('analysis')">Phân tích</div>
-            <div class="tab" onclick="showTab('manage')">Quản lý Coin</div>
-            <div class="tab" onclick="showTab('news')">Tin tức</div>
+            <div class="tab" onclick="showTab('manage')">Quản lý coin</div>
         </div>
         <div id="analysis" class="content active">
             <p>Last Updated: {{ last_updated }}</p>
@@ -112,10 +114,6 @@
             <div class="form-container">
                 <button onclick="resetCoins()">Reset danh sách coin</button>
             </div>
-        </div>
-        <div id="news" class="content">
-            <h2>Tin tức</h2>
-            <p>Chưa có tin tức cập nhật. Tính năng này sẽ sớm được thêm!</p>
         </div>
     </div>
     <script>
