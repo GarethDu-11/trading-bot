@@ -11,110 +11,70 @@
             margin: 20px;
             background-color: #f4f4f4;
         }
-
-        /* Logo bằng HTML/CSS */
         .header-logo {
             text-align: center;
             margin-bottom: 20px;
         }
-        .logo-text {
-            display: inline-block;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2.5em;
-            font-weight: 700;
-            text-transform: uppercase;
-            line-height: 1;
-        }
-        .logo-bot {
-            color: #00c4ff; /* Màu xanh lam cho "BOT" */
-            text-shadow: 
-                2px 2px 0 #008bb5, 
-                4px 4px 0 #006d8e, 
-                6px 6px 0 #004f67; /* Hiệu ứng 3D */
-        }
-        .logo-giao-dich {
-            color: #ff6200; /* Màu cam cho "GIAO DỊCH" */
-            text-shadow: 
-                2px 2px 0 #cc4e00, 
-                4px 4px 0 #993b00, 
-                6px 6px 0 #662800; /* Hiệu ứng 3D */
+        .header-logo img {
+            max-width: 50%; /* Điều chỉnh kích thước hình ảnh để không quá lớn */
+            height: auto;
+            display: block;
+            margin: 0 auto; /* Căn giữa hình ảnh */
         }
         @media (max-width: 768px) {
-            .logo-text {
-                font-size: 1.8em; /* Giảm kích thước logo trên điện thoại */
+            .header-logo img {
+                max-width: 80%; /* Tăng kích thước trên thiết bị di động */
             }
         }
-
-        /* Form nhập liệu */
         .search-section {
             text-align: center;
             margin: 20px 0;
         }
         .search-form {
-            display: flex;
-            justify-content: center;
-            width: 100%;
+            display: inline-block;
+            width: 60%;
             max-width: 600px;
-            margin: 0 auto;
         }
         .search-form input[type="text"] {
-            width: 35%;
-            padding: 8px;
+            width: 40%;
+            padding: 10px;
             border: 1px solid #ddd;
             border-radius: 20px 0 0 20px;
             outline: none;
-            font-size: 14px;
+            font-size: 16px;
         }
         .search-form input[type="text"]:focus {
             border-color: #007bff;
         }
         .search-form span {
-            padding: 8px;
+            padding: 10px;
             background-color: #f1f1f1;
             border: 1px solid #ddd;
             border-left: none;
             border-right: none;
-            font-size: 14px;
         }
         .search-form input[type="text"]:last-of-type {
             border-radius: 0;
             border-left: none;
             border-right: none;
-            width: 35%;
+            width: 40%;
         }
         .search-form button {
-            padding: 8px 16px;
+            padding: 10px 20px;
             background-color: #007bff;
             color: white;
             border: 1px solid #ddd;
             border-left: none;
             border-radius: 0 20px 20px 0;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
         }
         .search-form button:hover {
             background-color: #0056b3;
         }
-        @media (max-width: 768px) {
-            .search-form input[type="text"] {
-                width: 30%;
-                padding: 6px;
-                font-size: 12px;
-            }
-            .search-form span {
-                padding: 6px;
-                font-size: 12px;
-            }
-            .search-form button {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-        }
-
-        /* Phần Daily Analysis */
         .section {
             margin-bottom: 30px;
-            padding: 15px;
+            padding: 20px;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -122,51 +82,26 @@
         .section h2 {
             color: #007bff;
             margin-bottom: 10px;
-            font-size: 1.5em;
             display: inline-block;
         }
         .notification-btn {
             margin-left: 10px;
             padding: 5px 10px;
-            background-color: #ffc107;
+            background-color: #ffc107; /* Màu vàng cho "Nhận thông báo" */
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
         }
         .notification-btn:hover {
-            background-color: #e0a800;
+            background-color: #e0a800; /* Màu vàng đậm hơn khi hover */
         }
         .notification-btn.disabled {
-            background-color: #dc3545;
+            background-color: #dc3545; /* Màu đỏ cho "Đã nhận thông báo" */
         }
         .notification-btn.disabled:hover {
-            background-color: #c82333;
+            background-color: #c82333; /* Màu đỏ đậm hơn khi hover */
         }
-        .last-updated {
-            font-style: italic;
-            color: #666;
-            font-size: 14px;
-        }
-        @media (max-width: 768px) {
-            .section {
-                padding: 10px;
-            }
-            .section h2 {
-                font-size: 1.2em;
-            }
-            .notification-btn {
-                margin-left: 5px;
-                padding: 4px 8px;
-                font-size: 12px;
-            }
-            .last-updated {
-                font-size: 12px;
-            }
-        }
-
-        /* Box coin */
         .coin-box {
             position: relative;
             margin-bottom: 10px;
@@ -187,20 +122,16 @@
         .coin-header h3 {
             margin: 0;
             font-size: 1.2em;
-            display: flex;
-            align-items: center;
         }
         .coin-details {
             display: none;
             margin-top: 10px;
-            font-size: 14px;
         }
         .coin-box.expanded .coin-details {
             display: block;
         }
         .coin-box p {
             margin: 5px 0;
-            font-size: 14px;
         }
         .remove-coin {
             position: absolute;
@@ -230,7 +161,10 @@
             color: #dc3545;
             font-weight: bold;
             margin-top: 10px;
-            font-size: 14px;
+        }
+        .last-updated {
+            font-style: italic;
+            color: #666;
         }
         .trend-up {
             color: green;
@@ -272,57 +206,11 @@
         .change-24h.negative {
             color: red;
         }
-        @media (max-width: 768px) {
-            .coin-box {
-                padding: 8px;
-            }
-            .coin-box.expanded {
-                padding: 10px;
-            }
-            .coin-header h3 {
-                font-size: 1em;
-            }
-            .coin-details {
-                font-size: 12px;
-            }
-            .coin-box p {
-                font-size: 12px;
-            }
-            .remove-coin {
-                top: 5px;
-                right: 5px;
-                padding: 1px 4px;
-                font-size: 0.7em;
-            }
-            .breakout-dot {
-                top: 5px;
-                right: 30px;
-                width: 8px;
-                height: 8px;
-            }
-            .breakout-message {
-                font-size: 12px;
-            }
-            .price-cell {
-                margin-left: 5px;
-                font-size: 0.9em;
-            }
-            .change-24h {
-                margin-left: 5px;
-                font-size: 0.9em;
-            }
-            .coin-icon {
-                width: 16px;
-                height: 16px;
-            }
-        }
     </style>
 </head>
 <body>
     <div class="header-logo">
-        <div class="logo-text">
-            <span class="logo-bot">BOT</span> <span class="logo-giao-dich">GIAO DỊCH</span>
-        </div>
+        <img src="{{ url_for('static', filename='bot_trading_logo.png') }}" alt="BOT Giao Dịch">
     </div>
     
     <div class="search-section">
@@ -335,9 +223,9 @@
     </div>
 
     <div class="section">
-        <h2>Phân tích hàng ngày</h2>
+        <h2>Daily Analysis</h2>
         <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">Nhận thông báo</button>
-        <p class="last-updated">Cập nhật lần cuối: <span id="last-updated">{{ last_updated }}</span></p>
+        <p class="last-updated">Last updated: <span id="last-updated">{{ last_updated }}</span></p>
         {% if analysis_results %}
             {% for result in analysis_results %}
                 {% set lines = result.split('\n') %}
@@ -387,12 +275,12 @@
                 </div>
             {% endfor %}
         {% else %}
-            <p>Chưa có kết quả phân tích.</p>
+            <p>No analysis results available yet.</p>
         {% endif %}
     </div>
 
     <div class="section">
-        <button onclick="refreshAnalysis()">Làm mới phân tích</button>
+        <button onclick="refreshAnalysis()">Refresh Analysis</button>
     </div>
 
     <script>
