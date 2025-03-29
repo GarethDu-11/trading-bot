@@ -5,6 +5,7 @@ import logging
 import json
 import os
 import asyncio
+import aiohttp
 from threading import Thread
 from flask import Flask, render_template, jsonify, request
 from tvDatafeed import TvDatafeed, Interval
@@ -51,7 +52,7 @@ last_updated = "Chưa cập nhật"
 last_analysis_time = 0
 
 try:
-    tv = TvDatafeed()  # Chưa cần đăng nhập
+    tv = TvDatafeed()  # Chưa cần đăng nhập, tối ưu sau nếu cần
     logger.info("Đã kết nối thành công với TradingView")
 except Exception as e:
     logger.error(f"Lỗi khi kết nối với TradingView: {e}")
@@ -85,26 +86,26 @@ async def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h
             df = await fetch_data_async(tv_symbol, exchange, interval, limit)
             if df is None:
                 logger.warning(f"Không có dữ liệu nến cho {coin_symbol}")
-                return None, None, None, None
+                return None, None, None, None, None
             
             # Hỗ trợ/Kháng cự gần nhất (Pivot Points)
             support_nearest = df['low'].rolling(window=20).min().iloc[-1]
             resistance_nearest = df['high'].rolling(window=20).max().iloc[-1]
             
             # Hỗ trợ/Kháng cự mạnh (Volume Profile)
-            volume_profile = df.groupby(pd.cut(df['close'], bins=20), observed=False).agg({'volume': 'sum'})
+            volume_profile = df.groupby(pd.cut(df['close'], bins=20)).agg({'volume': 'sum'})
             max_volume_price = volume_profile['volume'].idxmax().mid
             support_strong = min(df[df['close'] <= max_volume_price]['low'].min(), support_nearest)
             resistance_strong = max(df[df['close'] >= max_volume_price]['high'].max(), resistance_nearest)
             
             logger.info(f"Lấy dữ liệu nến thành công cho {coin_symbol}")
-            return support_nearest, resistance_nearest, support_strong, resistance_strong
+            return support_nearest, resistance_nearest, support_strong, resistance_strong, df
         except Exception as e:
             logger.error(f"Lỗi khi lấy dữ liệu nến cho {coin_symbol}: {e}")
             attempt += 1
             if attempt == retries:
                 logger.error(f"Hết lượt thử cho {coin_symbol}. Bỏ qua.")
-                return None, None, None, None
+                return None, None, None, None, None
             await asyncio.sleep(2)
 
 def get_current_price(tv_symbol, exchange):
@@ -224,29 +225,23 @@ async def analyze_coin(coin):
     tv_symbol = coin["tv_symbol"]
     exchange = coin["exchange"]
     try:
-        # Lấy dữ liệu 4H và 1D bất đồng bộ
-        support_nearest_4h, resistance_nearest_4h, support_strong_4h, resistance_strong_4h = await get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", 45)
-        _, _, _, _ = await get_support_resistance(coin_symbol, tv_symbol, exchange, "1d", 90)
-        
-        # Lấy dữ liệu nến để phân tích mẫu hình và xu hướng
-        df_4h = await fetch_data_async(tv_symbol, exchange, Interval.in_4_hour, 45)
-        df_1d = await fetch_data_async(tv_symbol, exchange, Interval.in_daily, 90)
-
-        if df_4h is None or df_1d is None or support_nearest_4h is None:
+        support_nearest, resistance_nearest, support_strong, resistance_strong, df_4h = await get_support_resistance(coin_symbol, tv_symbol, exchange, "4h", 45)
+        _, _, _, _, df_1d = await get_support_resistance(coin_symbol, tv_symbol, exchange, "1d", 90)
+        if df_4h is None or df_1d is None:
             return f"Không thể phân tích {coin_symbol} do thiếu dữ liệu.\n\n"
         
         price = get_current_price(tv_symbol, exchange)
         pattern_4h = identify_candlestick_pattern(df_4h)
         pattern_1d, similarity = analyze_price_pattern(df_1d)
-        confluence = check_confluence(price, support_nearest_4h, resistance_nearest_4h, pattern_4h, pattern_1d, similarity)
+        confluence = check_confluence(price, support_nearest, resistance_nearest, pattern_4h, pattern_1d, similarity)
         trend = determine_trend(df_1d)
 
-        SUPPORT_RESISTANCE[coin_symbol] = (support_nearest_4h, resistance_nearest_4h)
+        SUPPORT_RESISTANCE[coin_symbol] = (support_nearest, resistance_nearest)
         return (
             f"{coin_symbol}:\n"
             f"Giá hiện tại: {price if price else 'N/A'}\n"
-            f"Hỗ trợ gần nhất: {support_nearest_4h:.2f}, Kháng cự gần nhất: {resistance_nearest_4h:.2f}\n"
-            f"Hỗ trợ mạnh: {support_strong_4h:.2f}, Kháng cự mạnh: {resistance_strong_4h:.2f}\n"
+            f"Hỗ trợ gần nhất: {support_nearest:.2f}, Kháng cự gần nhất: {resistance_nearest:.2f}\n"
+            f"Hỗ trợ mạnh: {support_strong:.2f}, Kháng cự mạnh: {resistance_strong:.2f}\n"
             f"Mẫu nến 4H: {pattern_4h}\n"
             f"Mẫu hình giá 1D: {pattern_1d} ({similarity:.2f}% tương đồng)\n"
             f"Hợp lưu: {confluence}\n"
@@ -379,5 +374,4 @@ startup_thread = Thread(target=startup)
 startup_thread.start()
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Lấy cổng từ biến môi trường, mặc định là 10000
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(debug=True, host='0.0.0.0', port=5000)

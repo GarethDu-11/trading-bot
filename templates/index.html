@@ -11,20 +11,47 @@
             padding: 20px;
             background: url('https://www.nasa.gov/wp-content/uploads/2023/03/783765main_OrionNebula.jpg') no-repeat center center fixed;
             background-size: cover;
-            color: #333;
+            color: #fff;
         }
         h1 {
             text-align: center;
+            color: #fff;
+            text-shadow: 0 0 10px #00ffcc;
         }
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.8);
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            margin: 0 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab:hover, .tab.active {
+            background: rgba(0, 255, 204, 0.2);
+            box-shadow: 0 0 15px #00ffcc;
+            color: #00ffcc;
+        }
+        .content {
+            background: rgba(0, 0, 0, 0.7);
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 15px;
+            display: none;
+        }
+        .content.active {
+            display: block;
         }
         pre {
             white-space: pre-wrap;
+            color: #fff;
         }
         .form-container {
             margin-top: 20px;
@@ -33,18 +60,19 @@
         input, button {
             padding: 10px;
             margin: 5px;
+            border-radius: 10px;
+            border: none;
         }
         button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
+            background: #00ffcc;
             cursor: pointer;
+            transition: all 0.3s;
         }
         button:hover {
-            background-color: #45a049;
+            box-shadow: 0 0 15px #00ffcc;
         }
         .breakout-alert {
-            color: red;
+            color: #ff3333;
             font-weight: bold;
             margin-top: 10px;
         }
@@ -53,30 +81,45 @@
 <body>
     <div class="container">
         <h1>Trading Bot Analysis</h1>
-        <p>Last Updated: {{ last_updated }}</p>
-        <pre>{{ analysis_results|join('') }}</pre>
-        {% for symbol, status in BREAKOUT_STATUS.items() %}
-            {% if status.message %}
-                <div class="breakout-alert">{{ status.message }}</div>
-            {% endif %}
-        {% endfor %}
-        <div class="form-container">
-            <h2>Thêm Coin</h2>
-            <input type="text" id="symbol" placeholder="Symbol (e.g., BTCUSDT)">
-            <input type="text" id="exchange" placeholder="Exchange (e.g., BINANCE)">
-            <button onclick="addCoin()">Thêm</button>
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('analysis')">Phân tích</div>
+            <div class="tab" onclick="showTab('manage')">Quản lý coin</div>
         </div>
-        <div class="form-container">
-            <h2>Xóa Coin</h2>
-            <input type="text" id="remove_symbol" placeholder="Symbol (e.g., BTCUSDT)">
-            <button onclick="removeCoin()">Xóa</button>
-        </div>
-        <div class="form-container">
+        <div id="analysis" class="content active">
+            <p>Last Updated: {{ last_updated }}</p>
+            <pre>{{ analysis_results|join('') }}</pre>
+            {% for symbol, status in BREAKOUT_STATUS.items() %}
+                {% if status.message %}
+                    <div class="breakout-alert">{{ status.message }}</div>
+                {% endif %}
+            {% endfor %}
             <button onclick="manualAnalyze()">Phân tích ngay</button>
-            <button onclick="resetCoins()">Reset danh sách coin</button>
+        </div>
+        <div id="manage" class="content">
+            <div class="form-container">
+                <h2>Thêm Coin</h2>
+                <input type="text" id="symbol" placeholder="Symbol (e.g., BTCUSDT)">
+                <input type="text" id="exchange" placeholder="Exchange (e.g., BINANCE)">
+                <button onclick="addCoin()">Thêm</button>
+            </div>
+            <div class="form-container">
+                <h2>Xóa Coin</h2>
+                <input type="text" id="remove_symbol" placeholder="Symbol (e.g., BTCUSDT)">
+                <button onclick="removeCoin()">Xóa</button>
+            </div>
+            <div class="form-container">
+                <button onclick="resetCoins()">Reset danh sách coin</button>
+            </div>
         </div>
     </div>
     <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
         function manualAnalyze() {
             fetch('/analyze').then(() => location.reload());
         }
