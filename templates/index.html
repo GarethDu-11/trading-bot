@@ -11,12 +11,20 @@
             margin: 20px;
             background-color: #f4f4f4;
         }
-        h1 {
+        .header-logo {
             text-align: center;
-            color: #333;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2.5em;
-            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .header-logo img {
+            max-width: 50%; /* Điều chỉnh kích thước hình ảnh để không quá lớn */
+            height: auto;
+            display: block;
+            margin: 0 auto; /* Căn giữa hình ảnh */
+        }
+        @media (max-width: 768px) {
+            .header-logo img {
+                max-width: 80%; /* Tăng kích thước trên thiết bị di động */
+            }
         }
         .search-section {
             text-align: center;
@@ -201,7 +209,9 @@
     </style>
 </head>
 <body>
-    <h1>BOT Giao Dịch</h1>
+    <div class="header-logo">
+        <img src="{{ url_for('static', filename='bot_trading_logo.png') }}" alt="BOT Giao Dịch">
+    </div>
     
     <div class="search-section">
         <form class="search-form" id="addCoinForm">
