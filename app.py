@@ -54,29 +54,35 @@ except Exception as e:
     logger.error(f"Lỗi khi kết nối với TradingView: {e}")
     tv = None
 
-def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h", limit=45):
-    try:
-        if tv is None:
-            raise Exception("Không thể kết nối với TradingView")
-        logger.info(f"Đang lấy dữ liệu nến cho {coin_symbol} ({timeframe})")
-        interval = Interval.in_4_hour if timeframe == "4h" else Interval.in_1_day
-        df = tv.get_hist(symbol=tv_symbol, exchange=exchange, interval=interval, n_bars=limit)
-        if df is None or df.empty:
-            logger.warning(f"Không có dữ liệu nến cho {coin_symbol}")
-            return None, None, None, None, None
-        df = df.reset_index()
-        df = df.rename(columns={'datetime': 'timestamp', 'open': 'open', 'high': 'high', 'low': 'low', 'close': 'close', 'volume': 'volume'})
-        df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
-        support_nearest = df['low'].rolling(window=20).min().iloc[-1]
-        resistance_nearest = df['high'].rolling(window=20).max().iloc[-1]
-        top_volume_candles = df.nlargest(2, 'volume')
-        support_strong = min(top_volume_candles['low'].min(), support_nearest)
-        resistance_strong = max(top_volume_candles['high'].max(), resistance_nearest)
-        logger.info(f"Lấy dữ liệu nến thành công cho {coin_symbol}")
-        return support_nearest, resistance_nearest, support_strong, resistance_strong, df
-    except Exception as e:
-        logger.error(f"Lỗi khi lấy dữ liệu nến cho {coin_symbol}: {e}")
-        return None, None, None, None, None
+def get_support_resistance(coin_symbol, tv_symbol, exchange, timeframe="4h", limit=45, retries=3):
+    attempt = 0
+    while attempt < retries:
+        try:
+            if tv is None:
+                raise Exception("Không thể kết nối với TradingView")
+            logger.info(f"Đang lấy dữ liệu nến cho {coin_symbol} ({timeframe}) - Lần thử {attempt + 1}")
+            interval = Interval.in_4_hour if timeframe == "4h" else Interval.in_daily
+            df = tv.get_hist(symbol=tv_symbol, exchange=exchange, interval=interval, n_bars=limit)
+            if df is None or df.empty:
+                logger.warning(f"Không có dữ liệu nến cho {coin_symbol}")
+                return None, None, None, None, None
+            df = df.reset_index()
+            df = df.rename(columns={'datetime': 'timestamp', 'open': 'open', 'high': 'high', 'low': 'low', 'close': 'close', 'volume': 'volume'})
+            df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+            support_nearest = df['low'].rolling(window=20).min().iloc[-1]
+            resistance_nearest = df['high'].rolling(window=20).max().iloc[-1]
+            top_volume_candles = df.nlargest(2, 'volume')
+            support_strong = min(top_volume_candles['low'].min(), support_nearest)
+            resistance_strong = max(top_volume_candles['high'].max(), resistance_nearest)
+            logger.info(f"Lấy dữ liệu nến thành công cho {coin_symbol}")
+            return support_nearest, resistance_nearest, support_strong, resistance_strong, df
+        except Exception as e:
+            logger.error(f"Lỗi khi lấy dữ liệu nến cho {coin_symbol}: {e}")
+            attempt += 1
+            if attempt == retries:
+                logger.error(f"Hết lượt thử cho {coin_symbol}. Bỏ qua.")
+                return None, None, None, None, None
+            time.sleep(2)  # Đợi 2 giây trước khi thử lại
 
 def get_current_price(tv_symbol, exchange):
     try:
@@ -151,9 +157,9 @@ def analyze_price_pattern(df_1d):
 def check_confluence(price, support_nearest, resistance_nearest, pattern_4h, pattern_1d, similarity):
     """Kiểm tra hợp lưu"""
     confluence = []
-    if abs(price - support_nearest) / support_nearest < 0.01:  # Giá gần hỗ trợ
+    if price and support_nearest and abs(price - support_nearest) / support_nearest < 0.01:  # Giá gần hỗ trợ
         confluence.append("Hỗ trợ gần nhất")
-    if abs(price - resistance_nearest) / resistance_nearest < 0.01:  # Giá gần kháng cự
+    if price and resistance_nearest and abs(price - resistance_nearest) / resistance_nearest < 0.01:  # Giá gần kháng cự
         confluence.append("Kháng cự gần nhất")
     if "Engulfing" in pattern_4h or "Doji" in pattern_4h:
         confluence.append(f"Mẫu nến 4H: {pattern_4h}")
