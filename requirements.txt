@@ -3,5 +3,5 @@ pandas>=2.2.3
 numpy>=1.24.4,<1.25.0
 schedule>=1.2.2
 gunicorn>=23.0.0
-tvdatafeed==2.1.0
+git+https://github.com/rongardF/tvdatafeed.git@main
 scipy>=1.15.2
