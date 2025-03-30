@@ -20,9 +20,10 @@ default_coins = [
 tracked_coins = default_coins.copy()
 analysis_cache = {"results": [], "breakout_status": {}, "last_updated": None}
 
-# Hàm nhận diện mẫu nến
+# Hàm nhận diện mẫu nến (11 loại mới)
 def detect_candlestick_pattern(df):
     last_candle = df.iloc[-1]
+    prev_candle = df.iloc[-2] if len(df) > 1 else None
     open_price = last_candle['open']
     close_price = last_candle['close']
     high_price = last_candle['high']
@@ -31,20 +32,51 @@ def detect_candlestick_pattern(df):
     upper_shadow = high_price - max(open_price, close_price)
     lower_shadow = min(open_price, close_price) - low_price
 
+    if prev_candle is None:
+        return "N/A", "N/A"
+
+    prev_open = prev_candle['open']
+    prev_close = prev_candle['close']
+    prev_body_size = abs(prev_close - prev_open)
+
     # Doji
     if body_size < (high_price - low_price) * 0.1:
-        return "Doji"
+        return "Doji", "Nến Doji"
     # Hammer
     elif lower_shadow > body_size * 2 and upper_shadow < body_size * 0.5 and close_price > open_price:
-        return "Hammer"
-    # Bearish Engulfing
-    elif len(df) > 1 and df['close'].iloc[-2] > df['open'].iloc[-2] and close_price < open_price and close_price < df['open'].iloc[-2] and open_price > df['close'].iloc[-2]:
-        return "Bearish Engulfing"
+        return "Hammer", "Nến Búa"
+    # Shooting Star
+    elif upper_shadow > body_size * 2 and lower_shadow < body_size * 0.5 and close_price < open_price:
+        return "Shooting Star", "Nến Sao Băng"
+    # Hanging Man
+    elif lower_shadow > body_size * 2 and upper_shadow < body_size * 0.5 and close_price < open_price:
+        return "Hanging Man", "Nến Người Treo"
     # Bullish Engulfing
-    elif len(df) > 1 and df['close'].iloc[-2] < df['open'].iloc[-2] and close_price > open_price and close_price > df['open'].iloc[-2] and open_price < df['close'].iloc[-2]:
-        return "Bullish Engulfing"
+    elif prev_close < prev_open and close_price > open_price and close_price > prev_open and open_price < prev_close:
+        return "Bullish Engulfing", "Nến Nhấn Chìm Tăng"
+    # Bearish Engulfing
+    elif prev_close > prev_open and close_price < open_price and close_price < prev_open and open_price > prev_close:
+        return "Bearish Engulfing", "Nến Nhấn Chìm Giảm"
+    # Morning Star
+    elif len(df) > 2 and df['close'].iloc[-3] > df['open'].iloc[-3] and prev_body_size < (prev_candle['high'] - prev_candle['low']) * 0.3 and close_price > open_price and close_price > (df['close'].iloc[-3] + prev_close) / 2:
+        return "Morning Star", "Nến Sao Mai"
+    # Evening Star
+    elif len(df) > 2 and df['close'].iloc[-3] < df['open'].iloc[-3] and prev_body_size < (prev_candle['high'] - prev_candle['low']) * 0.3 and close_price < open_price and close_price < (df['close'].iloc[-3] + prev_close) / 2:
+        return "Evening Star", "Nến Sao Tối"
+    # Bullish Harami
+    elif prev_close < prev_open and close_price > open_price and open_price > prev_close and close_price < prev_open:
+        return "Bullish Harami", "Nến Harami Tăng"
+    # Bearish Harami
+    elif prev_close > prev_open and close_price < open_price and open_price < prev_close and close_price > prev_open:
+        return "Bearish Harami", "Nến Harami Giảm"
+    # Piercing Line
+    elif prev_close < prev_open and close_price > open_price and close_price > (prev_open + prev_close) / 2 and open_price < prev_close:
+        return "Piercing Line", "Nến Đường Xuyên"
+    # Dark Cloud Cover
+    elif prev_close > prev_open and close_price < open_price and close_price < (prev_open + prev_close) / 2 and open_price > prev_close:
+        return "Dark Cloud Cover", "Nến Mây Đen Che Phủ"
     else:
-        return "N/A"
+        return "N/A", "N/A"
 
 # Hàm nhận diện mẫu hình giá
 def detect_price_pattern(df):
@@ -54,23 +86,35 @@ def detect_price_pattern(df):
     lows = df['low'].iloc[minima].tolist()
 
     if len(highs) < 2 or len(lows) < 2:
-        return "N/A", 0
+        return "N/A", 0, ""
 
     # Double Top
     if len(highs) >= 2 and abs(highs[-1] - highs[-2]) / highs[-1] < 0.02:
         similarity = (1 - abs(highs[-1] - highs[-2]) / highs[-1]) * 100
-        return "Double Top", similarity
+        return "Double Top", similarity, "↓"  # Mũi tên đỏ xuống
     # Double Bottom
     elif len(lows) >= 2 and abs(lows[-1] - lows[-2]) / lows[-1] < 0.02:
         similarity = (1 - abs(lows[-1] - lows[-2]) / lows[-1]) * 100
-        return "Double Bottom", similarity
+        return "Double Bottom", similarity, "↑"  # Mũi tên xanh lên
     else:
-        return "N/A", 0
+        return "N/A", 0, ""
+
+# Hàm xác nhận mẫu hình giá bằng mẫu nến
+def confirm_pattern_with_candle(price_pattern, candlestick_pattern):
+    bullish_candles = ["Hammer", "Bullish Engulfing", "Morning Star", "Bullish Harami", "Piercing Line"]
+    bearish_candles = ["Shooting Star", "Hanging Man", "Bearish Engulfing", "Evening Star", "Bearish Harami", "Dark Cloud Cover"]
+    
+    if price_pattern == "Double Bottom" and candlestick_pattern in bullish_candles:
+        return "Đã XN"
+    elif price_pattern == "Double Top" and candlestick_pattern in bearish_candles:
+        return "Đã XN"
+    else:
+        return "Chưa XN"
 
 # Hàm xác định xu hướng
 def determine_trend(df):
-    maxima = argrelextrema(df['high'].values, np.greater, order=5)[0][-4:]  # 4 đỉnh gần nhất
-    minima = argrelextrema(df['low'].values, np.less, order=5)[0][-4:]     # 4 đáy gần nhất
+    maxima = argrelextrema(df['high'].values, np.greater, order=5)[0][-4:]
+    minima = argrelextrema(df['low'].values, np.less, order=5)[0][-4:]
     if len(maxima) < 2 or len(minima) < 2:
         return "Đi ngang"
 
@@ -93,7 +137,6 @@ def daily_analysis():
         symbol = coin["symbol"]
         exchange = coin["exchange"]
         try:
-            # Lấy dữ liệu
             df_daily = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=100)
             df_4h = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_4_hour, n_bars=100)
 
@@ -101,10 +144,7 @@ def daily_analysis():
                 results.append(f"{symbol}: Không có dữ liệu\n")
                 continue
 
-            # Giá hiện tại
             current_price = df_daily['close'].iloc[-1]
-
-            # Tính mức hỗ trợ và kháng cự
             maxima = argrelextrema(df_daily['high'].values, np.greater, order=5)[0]
             minima = argrelextrema(df_daily['low'].values, np.less, order=5)[0]
             resistance_levels = df_daily['high'].iloc[maxima].tolist()
@@ -115,7 +155,6 @@ def daily_analysis():
             strong_resistance = max(resistance_levels, default='N/A')
             strong_support = min(support_levels, default='N/A')
 
-            # Kiểm tra breakout
             breakout_status[symbol] = {"support": current_price < nearest_support if nearest_support != 'N/A' else False,
                                       "resistance": current_price > nearest_resistance if nearest_resistance != 'N/A' else False,
                                       "message": ""}
@@ -124,25 +163,23 @@ def daily_analysis():
             elif breakout_status[symbol]["resistance"]:
                 breakout_status[symbol]["message"] = f"CẢNH BÁO: {symbol} đã phá vỡ vùng kháng cự {nearest_resistance}!"
 
-            # Nhận diện mẫu nến và mẫu hình giá
-            candlestick_pattern = detect_candlestick_pattern(df_4h)
-            price_pattern, similarity = detect_price_pattern(df_daily)
+            candlestick_pattern, candlestick_vn = detect_candlestick_pattern(df_4h)
+            price_pattern, similarity, arrow = detect_price_pattern(df_daily)
+            confirmation = confirm_pattern_with_candle(price_pattern, candlestick_pattern)
             trend = determine_trend(df_daily)
 
-            # Kết quả phân tích
             result = (f"{symbol}:\n"
                       f"Giá hiện tại: {current_price:.2f}\n"
                       f"Hỗ trợ gần nhất: {nearest_support}, Kháng cự gần nhất: {nearest_resistance}\n"
                       f"Hỗ trợ mạnh: {strong_support}, Kháng cự mạnh: {strong_resistance}\n"
-                      f"Mẫu nến 4H: {candlestick_pattern}\n"
-                      f"Mẫu hình giá 1D: {price_pattern} ({similarity:.0f}% tương đồng)\n"
-                      f"Hợp lưu: N/A\n"
+                      f"Mẫu nến 4H: {candlestick_pattern} ({candlestick_vn})\n"
+                      f"Mẫu hình giá 1D: {price_pattern} ({similarity:.0f}% tương đồng) {arrow}\n"
+                      f"Hợp lưu: {confirmation}\n"
                       f"Xu hướng chung: {trend}\n")
             results.append(result)
         except Exception as e:
             results.append(f"{symbol}: Lỗi khi phân tích - {str(e)}\n")
 
-    # Cập nhật cache
     analysis_cache = {
         "results": results,
         "breakout_status": breakout_status,
@@ -218,5 +255,5 @@ def get_price_change_24h():
     return jsonify(changes)
 
 if __name__ == '__main__':
-    daily_analysis()  # Chạy phân tích lần đầu khi khởi động
+    daily_analysis()
     app.run(debug=True)

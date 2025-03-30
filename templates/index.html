@@ -75,8 +75,11 @@
             text-align: center;
         }
         .tab-header {
-            position: relative;
             display: inline-block;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            overflow: hidden;
         }
         .tab-items {
             list-style: none;
@@ -87,12 +90,11 @@
         .tab-item {
             padding: 10px 20px;
             cursor: pointer;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            background-color: #fff;
+            border-right: 1px solid #ddd;
             transition: background-color 0.3s;
-            border-radius: 20px;
-            margin: 0;
+        }
+        .tab-item:last-child {
+            border-right: none;
         }
         .tab-item:hover {
             background-color: #f1f1f1;
@@ -100,13 +102,6 @@
         .tab-item.active {
             background-color: #f4f4f4;
             text-shadow: 0 0 10px #00b7eb, 0 0 20px #00b7eb, 0 0 30px #00b7eb;
-        }
-        .highlight {
-            position: absolute;
-            bottom: 0;
-            height: 2px;
-            background-color: #007bff;
-            transition: all 0.3s ease;
         }
         .tab-content {
             border: 1px solid #ddd;
@@ -128,6 +123,40 @@
             .tab-content {
                 padding: 10px;
             }
+        }
+
+        /* Sub-tab trong Tin tức */
+        .sub-tab-header {
+            margin: 10px 0;
+            text-align: center;
+        }
+        .sub-tab-items {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
+        .sub-tab-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            margin: 0 5px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .sub-tab-item:hover {
+            background-color: #f1f1f1;
+        }
+        .sub-tab-item.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .sub-tab-content-item {
+            display: none;
+        }
+        .sub-tab-content-item.active {
+            display: block;
         }
 
         /* Form nhập liệu */
@@ -377,6 +406,16 @@
         .change-24h.negative {
             color: red;
         }
+        .arrow-up {
+            color: green;
+            font-size: 1.2em;
+            vertical-align: middle;
+        }
+        .arrow-down {
+            color: red;
+            font-size: 1.2em;
+            vertical-align: middle;
+        }
         @media (max-width: 768px) {
             .coin-box {
                 padding: 8px;
@@ -439,7 +478,6 @@
                 <li class="tab-item" data-tab="1">Tin tức</li>
                 <li class="tab-item" data-tab="2">Tùy chỉnh Coin</li>
             </ul>
-            <div class="highlight" id="highlight"></div>
         </div>
         <div class="tab-content">
             <!-- Nội dung Chỉ báo -->
@@ -458,9 +496,11 @@
                             {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
                             {% set strong_support = lines[3].split(': ')[1].split(', ')[0] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
                             {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
-                            {% set pattern_4h = lines[4].split(': ')[1] if 'Mẫu nến 4H' in lines[4] else 'N/A' %}
+                            {% set pattern_4h = lines[4].split(': ')[1].split(' (')[0] if 'Mẫu nến 4H' in lines[4] else 'N/A' %}
+                            {% set pattern_4h_vn = lines[4].split('(')[1].split(')')[0] if 'Mẫu nến 4H' in lines[4] and '(' in lines[4] else 'N/A' %}
                             {% set pattern_1d = lines[5].split(': ')[1].split(' (')[0] if 'Mẫu hình giá 1D' in lines[5] else 'N/A' %}
                             {% set similarity = lines[5].split('(')[1].split('%')[0] if 'Mẫu hình giá 1D' in lines[5] and '(' in lines[5] else '0' %}
+                            {% set arrow = lines[5].split(') ')[1] if 'Mẫu hình giá 1D' in lines[5] and ') ' in lines[5] else '' %}
                             {% set confluence = lines[6].split(': ')[1] if 'Hợp lưu' in lines[6] else 'N/A' %}
                             {% set trend = lines[7].split(': ')[1] if 'Xu hướng chung' in lines[7] else 'N/A' %}
                             <div class="coin-box" data-coin="{{ coin }}">
@@ -490,8 +530,14 @@
                                     <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
                                     <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
                                     <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
-                                    <p>Mẫu nến 4H: {{ pattern_4h }}</p>
-                                    <p>Mẫu hình giá 1D: {{ pattern_1d }} ({{ similarity }}% tương đồng)</p>
+                                    <p>Mẫu nến 4H: {{ pattern_4h }} ({{ pattern_4h_vn }})</p>
+                                    <p>Mẫu hình giá 1D: {{ pattern_1d }} ({{ similarity }}% tương đồng) 
+                                        {% if arrow == '↑' %}
+                                            <span class="arrow-up">↑</span>
+                                        {% elif arrow == '↓' %}
+                                            <span class="arrow-down">↓</span>
+                                        {% endif %}
+                                    </p>
                                     <p>Hợp lưu: {{ confluence }}</p>
                                     <p>Xu hướng chung: 
                                         {% if 'tăng' in trend.lower() %}
@@ -515,7 +561,24 @@
             </div>
             <!-- Nội dung Tin tức -->
             <div class="tab-content-item" id="news-tab">
-                <p>Chưa có tin tức nào để hiển thị.</p>
+                <div class="sub-tab-header">
+                    <ul class="sub-tab-items">
+                        <li class="sub-tab-item active" data-sub-tab="0">Crypto</li>
+                        <li class="sub-tab-item" data-sub-tab="1">Kinh tế</li>
+                        <li class="sub-tab-item" data-sub-tab="2">Thể thao</li>
+                    </ul>
+                </div>
+                <div class="sub-tab-content">
+                    <div class="sub-tab-content-item active" id="crypto-tab">
+                        <p>Chưa có tin tức Crypto để hiển thị.</p>
+                    </div>
+                    <div class="sub-tab-content-item" id="economy-tab">
+                        <p>Chưa có tin tức Kinh tế để hiển thị.</p>
+                    </div>
+                    <div class="sub-tab-content-item" id="sports-tab">
+                        <p>Chưa có tin tức Thể thao để hiển thị.</p>
+                    </div>
+                </div>
             </div>
             <!-- Nội dung Tùy chỉnh Coin -->
             <div class="tab-content-item" id="customize-coin-tab">
@@ -532,15 +595,12 @@
     </div>
 
     <script>
-        // Tab functionality
+        // Tab chính
         const tabItems = document.querySelectorAll('.tab-item');
-        const highlight = document.getElementById('highlight');
         const tabContentItems = document.querySelectorAll('.tab-content-item');
 
         tabItems[0].classList.add('active');
         tabContentItems[0].classList.add('active');
-        highlight.style.width = tabItems[0].offsetWidth + 'px';
-        highlight.style.left = tabItems[0].offsetLeft + 'px';
 
         tabItems.forEach((item, index) => {
             item.addEventListener('click', (e) => {
@@ -550,8 +610,24 @@
                 tabContentItems.forEach((contentItem, contentIndex) => {
                     contentItem.classList.toggle('active', contentIndex === index);
                 });
-                highlight.style.width = item.offsetWidth + 'px';
-                highlight.style.left = item.offsetLeft + 'px';
+            });
+        });
+
+        // Sub-tab trong Tin tức
+        const subTabItems = document.querySelectorAll('.sub-tab-item');
+        const subTabContentItems = document.querySelectorAll('.sub-tab-content-item');
+
+        subTabItems[0].classList.add('active');
+        subTabContentItems[0].classList.add('active');
+
+        subTabItems.forEach((item, index) => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                subTabItems.forEach(el => el.classList.remove('active'));
+                item.classList.add('active');
+                subTabContentItems.forEach((contentItem, contentIndex) => {
+                    contentItem.classList.toggle('active', contentIndex === index);
+                });
             });
         });
 
@@ -651,16 +727,16 @@
 
         function refreshAnalysis() {
             const refreshBtn = document.getElementById('refreshBtn');
-            refreshBtn.disabled = true; // Vô hiệu hóa nút khi nhấn
+            refreshBtn.disabled = true;
             fetch('/analyze')
                 .then(response => response.text())
                 .then(data => {
                     console.log(data);
-                    location.reload(); // Tự động tải lại trang
+                    location.reload();
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    refreshBtn.disabled = false; // Bật lại nút nếu lỗi
+                    refreshBtn.disabled = false;
                 });
         }
 
@@ -701,58 +777,4 @@
         }
 
         function initNotificationButton() {
-            const notificationBtn = document.getElementById('notificationBtn');
-            const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-            if (notificationsEnabled) {
-                notificationBtn.textContent = 'Đã nhận thông báo';
-                notificationBtn.classList.add('disabled');
-            } else {
-                notificationBtn.textContent = 'Nhận thông báo';
-                notificationBtn.classList.remove('disabled');
-            }
-        }
-        initNotificationButton();
-
-        function checkBreakoutNotifications() {
-            const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-            if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
-                fetch('/get_prices')
-                    .then(response => response.json())
-                    .then(prices => {
-                        let breakoutOccurred = false;
-                        document.querySelectorAll('.coin-box').forEach(coinBox => {
-                            const coin = coinBox.getAttribute('data-coin');
-                            const price = prices[coin];
-                            if (price) {
-                                const support = parseFloat(coinBox.querySelector('.support').textContent);
-                                const resistance = parseFloat(coinBox.querySelector('.resistance').textContent);
-                                const breakoutDot = coinBox.querySelector('.breakout-dot');
-
-                                if (price < support && !breakoutDot) {
-                                    const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng hỗ trợ ${support.toFixed(2)}! Giá hiện tại: ${price}`;
-                                    coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
-                                    coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
-                                    new Notification(message);
-                                    breakoutOccurred = true;
-                                } else if (price > resistance && !breakoutDot) {
-                                    const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng kháng cự ${resistance.toFixed(2)}! Giá hiện tại: ${price}`;
-                                    coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
-                                    coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
-                                    new Notification(message);
-                                    breakoutOccurred = true;
-                                }
-                            }
-                        });
-                        if (breakoutOccurred) {
-                            refreshAnalysis();
-                        }
-                    })
-                    .catch(error => console.error('Error checking breakout:', error));
-            }
-        }
-
-        setInterval(checkBreakoutNotifications, 60000);
-        checkBreakoutNotifications();
-    </script>
-</body>
-</html>
+            const
