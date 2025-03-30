@@ -10,14 +10,18 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 import requests
 import feedparser
+import logging
 
 app = Flask(__name__)
+
+# Thiết lập logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Khởi tạo TvDatafeed
 tv = TvDatafeed()
 
-# API Key cho NewsAPI (đăng ký tại https://newsapi.org/)
-NEWS_API_KEY = "e8dea5c6f2894640ba6676a7d7b37943"  # Key của bạn
+# API Key cho NewsAPI (nên thay bằng biến môi trường trong thực tế)
+NEWS_API_KEY = "e8dea5c6f2894640ba6676a7d7b37943"
 
 # RSS Feeds cho tin tức Crypto
 RSS_FEEDS = {
@@ -232,16 +236,27 @@ def daily_analysis():
 # Hàm lấy tin tức từ NewsAPI (Bloomberg, Reuters)
 def get_newsapi_articles(category):
     url = f"https://newsapi.org/v2/top-headlines?sources={category}&apiKey={NEWS_API_KEY}"
-    response = requests.get(url)
-    if response.status_code == 200:
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
         data = response.json()
-        return [{"title": article["title"], "url": article["url"]} for article in data["articles"][:5]]
-    return []
+        articles = [{"title": article["title"], "url": article["url"]} for article in data["articles"][:5]]
+        logging.debug(f"Fetched {len(articles)} articles from NewsAPI for {category}")
+        return articles
+    except Exception as e:
+        logging.error(f"Error fetching NewsAPI for {category}: {str(e)}")
+        return []
 
 # Hàm lấy tin tức từ RSS
 def get_rss_articles(feed_url):
-    feed = feedparser.parse(feed_url)
-    return [{"title": entry.title, "url": entry.link} for entry in feed.entries[:5]]
+    try:
+        feed = feedparser.parse(feed_url)
+        articles = [{"title": entry.title, "url": entry.link} for entry in feed.entries[:5]]
+        logging.debug(f"Parsed {len(articles)} articles from RSS feed {feed_url}")
+        return articles
+    except Exception as e:
+        logging.error(f"Error parsing RSS feed {feed_url}: {str(e)}")
+        return []
 
 # Chạy phân tích định kỳ mỗi 1 giờ
 def run_schedule():
@@ -294,7 +309,8 @@ def get_prices():
         try:
             df = tv.get_hist(symbol=coin["symbol"], exchange=coin["exchange"], interval=Interval.in_1_minute, n_bars=1)
             prices[coin["symbol"]] = df['close'].iloc[-1]
-        except:
+        except Exception as e:
+            logging.error(f"Error fetching price for {coin['symbol']}: {str(e)}")
             prices[coin["symbol"]] = None
     return jsonify(prices)
 
@@ -307,7 +323,8 @@ def get_price_change_24h():
             df = tv.get_hist(symbol=coin["symbol"], exchange=coin["exchange"], interval=Interval.in_1_hour, n_bars=24)
             price_change = ((df['close'].iloc[-1] - df['close'].iloc[0]) / df['close'].iloc[0]) * 100
             changes[coin["symbol"]] = price_change
-        except:
+        except Exception as e:
+            logging.error(f"Error fetching 24h change for {coin['symbol']}: {str(e)}")
             changes[coin["symbol"]] = None
     return jsonify(changes)
 
@@ -317,13 +334,16 @@ def get_news(category):
     if category == "crypto":
         news = []
         for source, url in RSS_FEEDS["crypto"].items():
-            news.extend(get_rss_articles(url))
+            articles = get_rss_articles(url)
+            news.extend(articles)
         return jsonify(news[:15])  # Giới hạn 15 tin
     elif category == "economics":
-        return jsonify(get_newsapi_articles("bloomberg,reuters"))
-    elif category == "sports":  # Placeholder cho thể thao
+        articles = get_newsapi_articles("bloomberg,reuters")
+        return jsonify(articles)
+    elif category == "sports":
         return jsonify([])  # Chưa có nguồn, trả về rỗng
     else:
+        logging.warning(f"Unknown category requested: {category}")
         return jsonify([])
 
 if __name__ == '__main__':

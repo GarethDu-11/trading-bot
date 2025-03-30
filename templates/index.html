@@ -3,901 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BOT Giao Dịch</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
-        }
-
-        /* Logo */
-        .header-logo {
-            text-align: center;
-            margin-bottom: 20px;
-            position: relative;
-        }
-        .logo-container {
-            display: inline-block;
-            position: relative;
-        }
-        .logo-bot, .logo-trading {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            font-size: 3em;
-            text-transform: uppercase;
-            line-height: 1;
-        }
-        .logo-bot {
-            color: #00c4ff;
-            text-shadow: 2px 2px 0 #008bb5, 4px 4px 0 #006d8e, 6px 6px 0 #004f67;
-        }
-        .logo-trading {
-            color: #ff6200;
-            text-shadow: 2px 2px 0 #cc4e00, 4px 4px 0 #993b00, 6px 6px 0 #662800;
-        }
-        .logo-container::before, .logo-container::after {
-            content: '+';
-            position: absolute;
-            color: #00c4ff;
-            font-size: 1.5em;
-            opacity: 0.7;
-        }
-        .logo-container::before {
-            top: -20px;
-            left: -20px;
-        }
-        .logo-container::after {
-            bottom: -20px;
-            right: -20px;
-        }
-        @media (max-width: 768px) {
-            .logo-bot, .logo-trading {
-                font-size: 2em;
-            }
-            .logo-container::before, .logo-container::after {
-                font-size: 1em;
-            }
-            .logo-container::before {
-                top: -10px;
-                left: -10px;
-            }
-            .logo-container::after {
-                bottom: -10px;
-                right: -10px;
-            }
-        }
-
-        /* Tab Section */
-        .tab-section {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .tab-header {
-            position: relative;
-            display: inline-block;
-        }
-        .tab-items {
-            list-style: none;
-            display: flex;
-            margin: 0;
-            padding: 0;
-        }
-        .tab-item {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            background-color: #fff;
-            transition: background-color 0.3s;
-            border-radius: 20px;
-            margin: 0;
-        }
-        .tab-item:hover {
-            background-color: #f1f1f1;
-        }
-        .tab-item.active {
-            background-color: #f4f4f4;
-            text-shadow: 0 0 10px #00b7eb, 0 0 20px #00b7eb, 0 0 30px #00b7eb;
-        }
-        .highlight {
-            position: absolute;
-            bottom: 0;
-            height: 2px;
-            background-color: #007bff;
-            transition: all 0.3s ease;
-        }
-        .tab-content {
-            border: 1px solid #ddd;
-            padding: 15px;
-            background-color: #fff;
-            border-radius: 0 0 8px 8px;
-        }
-        .tab-content-item {
-            display: none;
-        }
-        .tab-content-item.active {
-            display: block;
-        }
-        @media (max-width: 768px) {
-            .tab-item {
-                padding: 8px 15px;
-                font-size: 14px;
-            }
-            .tab-content {
-                padding: 10px;
-            }
-        }
-
-        /* Sub-Tab Section */
-        .sub-tab-section {
-            margin-top: 10px;
-        }
-        .sub-tab-header {
-            position: relative;
-            display: inline-block;
-        }
-        .sub-tab-items {
-            list-style: none;
-            display: flex;
-            margin: 0;
-            padding: 0;
-        }
-        .sub-tab-item {
-            padding: 8px 16px;
-            cursor: pointer;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            background-color: #fff;
-            transition: background-color 0.3s;
-            border-radius: 15px;
-            margin: 0;
-        }
-        .sub-tab-item:hover {
-            background-color: #f1f1f1;
-        }
-        .sub-tab-item.active {
-            background-color: #f4f4f4;
-            text-shadow: 0 0 5px #00b7eb, 0 0 10px #00b7eb;
-        }
-        .sub-highlight {
-            position: absolute;
-            bottom: 0;
-            height: 2px;
-            background-color: #ff6200;
-            transition: all 0.3s ease;
-        }
-        .sub-tab-content {
-            border: 1px solid #ddd;
-            padding: 10px;
-            background-color: #fff;
-            border-radius: 0 0 8px 8px;
-        }
-        .sub-tab-content-item {
-            display: none;
-        }
-        .sub-tab-content-item.active {
-            display: block;
-        }
-        @media (max-width: 768px) {
-            .sub-tab-item {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-            .sub-tab-content {
-                padding: 8px;
-            }
-        }
-
-        /* Form nhập liệu */
-        .search-section {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .search-form {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .search-form input[type="text"] {
-            width: 35%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 20px 0 0 20px;
-            outline: none;
-            font-size: 14px;
-        }
-        .search-form input[type="text"]:focus {
-            border-color: #007bff;
-        }
-        .search-form span {
-            padding: 8px;
-            background-color: #f1f1f1;
-            border: 1px solid #ddd;
-            border-left: none;
-            border-right: none;
-            font-size: 14px;
-        }
-        .search-form input[type="text"]:last-of-type {
-            border-radius: 0;
-            border-left: none;
-            border-right: none;
-            width: 35%;
-        }
-        .search-form button {
-            padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            border: 1px solid #ddd;
-            border-left: none;
-            border-radius: 0 20px 20px 0;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .search-form button:hover {
-            background-color: #0056b3;
-        }
-        @media (max-width: 768px) {
-            .search-form input[type="text"] {
-                width: 30%;
-                padding: 6px;
-                font-size: 12px;
-            }
-            .search-form span {
-                padding: 6px;
-                font-size: 12px;
-            }
-            .search-form button {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-        }
-
-        /* Phần Daily Analysis */
-        .daily-analysis {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .daily-analysis h2 {
-            color: #007bff;
-            margin-bottom: 10px;
-            font-size: 1.5em;
-        }
-        .notification-btn {
-            margin-left: 10px;
-            padding: 5px 10px;
-            background-color: #ffc107;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .notification-btn:hover {
-            background-color: #e0a800;
-        }
-        .notification-btn.disabled {
-            background-color: #dc3545;
-        }
-        .notification-btn.disabled:hover {
-            background-color: #c82333;
-        }
-        .refresh-btn {
-            margin-left: 10px;
-            padding: 5px 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .refresh-btn:hover {
-            background-color: #218838;
-        }
-        .refresh-btn:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
-        .last-updated {
-            font-style: italic;
-            color: #666;
-            font-size: 14px;
-        }
-        @media (max-width: 768px) {
-            .daily-analysis {
-                padding: 10px;
-            }
-            .daily-analysis h2 {
-                font-size: 1.2em;
-            }
-            .notification-btn, .refresh-btn {
-                margin-left: 5px;
-                padding: 4px 8px;
-                font-size: 12px;
-            }
-            .last-updated {
-                font-size: 12px;
-            }
-        }
-
-        /* Box coin */
-        .coin-box {
-            position: relative;
-            margin-bottom: 10px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .coin-box.expanded {
-            padding: 15px;
-        }
-        .coin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .coin-header h3 {
-            margin: 0;
-            font-size: 1.2em;
-            display: flex;
-            align-items: center;
-        }
-        .coin-details {
-            display: none;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        .coin-box.expanded .coin-details {
-            display: block;
-        }
-        .coin-box p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-        .remove-coin {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #dc3545;
-            color: white;
-            border: 1px solid black;
-            border-radius: 3px;
-            padding: 2px 6px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-        .remove-coin:hover {
-            background-color: #c82333;
-        }
-        .breakout-dot {
-            position: absolute;
-            top: 10px;
-            right: 40px;
-            width: 10px;
-            height: 10px;
-            background-color: #dc3545;
-            border-radius: 50%;
-        }
-        .breakout-message {
-            color: #dc3545;
-            font-weight: bold;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        .trend-up {
-            color: green;
-            font-weight: bold;
-        }
-        .trend-down {
-            color: red;
-            font-weight: bold;
-        }
-        .trend-sideways {
-            color: #666;
-            font-weight: bold;
-        }
-        .support {
-            color: green;
-            font-weight: bold;
-        }
-        .resistance {
-            color: red;
-            font-weight: bold;
-        }
-        .separator {
-            color: black;
-            font-weight: bold;
-        }
-        .coin-icon {
-            width: 20px;
-            height: 20px;
-            vertical-align: middle;
-            margin-right: 5px;
-        }
-        .price-cell {
-            font-weight: bold;
-            margin-left: 10px;
-        }
-        .change-24h {
-            font-weight: bold;
-            margin-left: 10px;
-        }
-        .change-24h.positive {
-            color: green;
-        }
-        .change-24h.negative {
-            color: red;
-        }
-        @media (max-width: 768px) {
-            .coin-box {
-                padding: 8px;
-            }
-            .coin-box.expanded {
-                padding: 10px;
-            }
-            .coin-header h3 {
-                font-size: 1em;
-            }
-            .coin-details {
-                font-size: 12px;
-            }
-            .coin-box p {
-                font-size: 12px;
-            }
-            .remove-coin {
-                top: 5px;
-                right: 5px;
-                padding: 1px 4px;
-                font-size: 0.7em;
-            }
-            .breakout-dot {
-                top: 5px;
-                right: 30px;
-                width: 8px;
-                height: 8px;
-            }
-            .breakout-message {
-                font-size: 12px;
-            }
-            .price-cell {
-                margin-left: 5px;
-                font-size: 0.9em;
-            }
-            .change-24h {
-                margin-left: 5px;
-                font-size: 0.9em;
-            }
-            .coin-icon {
-                width: 16px;
-                height: 16px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header-logo">
-        <div class="logo-container">
-            <span class="logo-bot">BOT</span>
-            <span class="logo-trading">TRADING</span>
-        </div>
-    </div>
-
-    <!-- Tab Section -->
-    <div class="tab-section">
-        <div class="tab-header">
-            <ul class="tab-items">
-                <li class="tab-item active" data-tab="0">Chỉ báo</li>
-                <li class="tab-item" data-tab="1">Tin tức</li>
-                <li class="tab-item" data-tab="2">Tùy chỉnh Coin</li>
-            </ul>
-            <div class="highlight" id="highlight"></div>
-        </div>
-        <div class="tab-content">
-            <!-- Nội dung Chỉ báo -->
-            <div class="tab-content-item active" id="indicators-tab">
-                <div class="daily-analysis">
-                    <h2>Phân tích hàng ngày</h2>
-                    <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">Nhận thông báo</button>
-                    <button class="refresh-btn" id="refreshBtn" onclick="refreshAnalysis()">Làm mới phân tích</button>
-                    <p class="last-updated">Cập nhật lần cuối: <span id="last-updated">{{ last_updated }}</span></p>
-                    {% if analysis_results %}
-                        {% for result in analysis_results %}
-                            {% set lines = result.split('\n') %}
-                            {% set coin = lines[0].split(':')[0] %}
-                            {% set price = lines[1].split(': ')[1] if 'Giá hiện tại' in lines[1] else 'Không có dữ liệu' %}
-                            {% set nearest_support = lines[2].split(': ')[1].split(', ')[0] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
-                            {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
-                            {% set strong_support = lines[3].split(': ')[1].split(', ')[0] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
-                            {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
-                            {% set pattern_4h = lines[4].split(': ')[1] if 'Mẫu nến 4H' in lines[4] else 'N/A' %}
-                            {% set pattern_1d = lines[5].split(': ')[1].split(' (')[0] if 'Mẫu hình giá 1D' in lines[5] else 'N/A' %}
-                            {% set similarity = lines[5].split('(')[1].split('%')[0] if 'Mẫu hình giá 1D' in lines[5] and '(' in lines[5] else '0' %}
-                            {% set confluence = lines[6].split(': ')[1] if 'Hợp lưu' in lines[6] else 'N/A' %}
-                            {% set trend = lines[7].split(': ')[1] if 'Xu hướng chung' in lines[7] else 'N/A' %}
-                            <div class="coin-box" data-coin="{{ coin }}">
-                                <button class="remove-coin" onclick="confirmRemoveCoin('{{ coin }}')">X</button>
-                                {% if coin in BREAKOUT_STATUS and (BREAKOUT_STATUS[coin]['support'] or BREAKOUT_STATUS[coin]['resistance']) %}
-                                    <div class="breakout-dot"></div>
-                                {% endif %}
-                                <div class="coin-header" onclick="toggleDetails(this)">
-                                    <h3>
-                                        {% set coin_mappings = {
-                                            'ALPH': 'alephium',
-                                            'BTC': 'bitcoin',
-                                            'ETH': 'ethereum',
-                                            'XRP': 'xrp',
-                                            'SOL': 'solana'
-                                        } %}
-                                        {% set mapped_coin = coin_mappings.get(coin.replace('USDT', ''), coin.replace('USDT', '').lower()) %}
-                                        <img src="https://cryptologos.cc/logos/{{ mapped_coin }}-{{ coin.replace('USDT', '').lower() }}-logo.png"
-                                             class="coin-icon" alt="{{ coin }} icon"
-                                             onerror="this.style.display='none';">
-                                        {{ coin }}
-                                        <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span>
-                                        <span class="change-24h" data-coin="{{ coin }}">N/A</span>
-                                    </h3>
-                                </div>
-                                <div class="coin-details">
-                                    <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
-                                    <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
-                                    <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
-                                    <p>Mẫu nến 4H: {{ pattern_4h }}</p>
-                                    <p>Mẫu hình giá 1D: {{ pattern_1d }} ({{ similarity }}% tương đồng)</p>
-                                    <p>Hợp lưu: {{ confluence }}</p>
-                                    <p>Xu hướng chung: 
-                                        {% if 'tăng' in trend.lower() %}
-                                            <span class="trend-up">{{ trend }}</span>
-                                        {% elif 'giảm' in trend.lower() %}
-                                            <span class="trend-down">{{ trend }}</span>
-                                        {% else %}
-                                            <span class="trend-sideways">{{ trend }}</span>
-                                        {% endif %}
-                                    </p>
-                                    {% if coin in BREAKOUT_STATUS and BREAKOUT_STATUS[coin]['message'] %}
-                                        <p class="breakout-message">{{ BREAKOUT_STATUS[coin]['message'] }}</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <p>Chưa có kết quả phân tích.</p>
-                    {% endif %}
-                </div>
-            </div>
-            <!-- Nội dung Tin tức -->
-            <div class="tab-content-item" id="news-tab">
-                <div class="sub-tab-section">
-                    <div class="sub-tab-header">
-                        <ul class="sub-tab-items">
-                            <li class="sub-tab-item active" data-sub-tab="crypto">Crypto</li>
-                            <li class="sub-tab-item" data-sub-tab="economics">Kinh tế</li>
-                            <li class="sub-tab-item" data-sub-tab="sports">Thể thao</li>
-                        </ul>
-                        <div class="sub-highlight" id="sub-highlight"></div>
-                    </div>
-                    <div class="sub-tab-content">
-                        <div class="sub-tab-content-item active" id="crypto-tab">
-                            <p>Chưa có tin tức Crypto để hiển thị.</p>
-                        </div>
-                        <div class="sub-tab-content-item" id="economics-tab">
-                            <p>Chưa có tin tức Kinh tế để hiển thị.</p>
-                        </div>
-                        <div class="sub-tab-content-item" id="sports-tab">
-                            <p>Chưa có tin tức Thể thao để hiển thị.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Nội dung Tùy chỉnh Coin -->
-            <div class="tab-content-item" id="customize-coin-tab">
-                <div class="search-section">
-                    <form class="search-form" id="addCoinForm">
-                        <input type="text" id="coin_name" name="coin_name" placeholder="Tên đồng coin (e.g., ADA)" required>
-                        <span>USDT</span>
-                        <input type="text" id="exchange" name="exchange" placeholder="Sàn giao dịch (e.g., BINANCE)" required>
-                        <button type="submit">Thêm</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Tab functionality
-        const tabItems = document.querySelectorAll('.tab-item');
-        const highlight = document.getElementById('highlight');
-        const tabContentItems = document.querySelectorAll('.tab-content-item');
-
-        tabItems[0].classList.add('active');
-        tabContentItems[0].classList.add('active');
-        highlight.style.width = tabItems[0].offsetWidth + 'px';
-        highlight.style.left = tabItems[0].offsetLeft + 'px';
-
-        tabItems.forEach((item, index) => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                tabItems.forEach(el => el.classList.remove('active'));
-                item.classList.add('active');
-                tabContentItems.forEach((contentItem, contentIndex) => {
-                    contentItem.classList.toggle('active', contentIndex === index);
-                });
-                highlight.style.width = item.offsetWidth + 'px';
-                highlight.style.left = item.offsetLeft + 'px';
-            });
-        });
-
-        // Sub-Tab functionality
-        const subTabItems = document.querySelectorAll('.sub-tab-item');
-        const subHighlight = document.getElementById('sub-highlight');
-        const subTabContentItems = document.querySelectorAll('.sub-tab-content-item');
-
-        if (subTabItems.length > 0) {
-            subTabItems[0].classList.add('active');
-            subTabContentItems[0].classList.add('active');
-            subHighlight.style.width = subTabItems[0].offsetWidth + 'px';
-            subHighlight.style.left = subTabItems[0].offsetLeft + 'px';
-
-            subTabItems.forEach((item, index) => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    subTabItems.forEach(el => el.classList.remove('active'));
-                    item.classList.add('active');
-                    subTabContentItems.forEach((contentItem, contentIndex) => {
-                        contentItem.classList.toggle('active', contentIndex === index);
-                    });
-                    subHighlight.style.width = item.offsetWidth + 'px';
-                    subHighlight.style.left = item.offsetLeft + 'px';
-                });
-            });
-        }
-
-        // Sửa thời gian "Last updated"
-        function updateLastUpdated() {
-            const lastUpdatedElement = document.getElementById('last-updated');
-            const serverTimeStr = lastUpdatedElement.textContent;
-            const serverTime = new Date(serverTimeStr + ' UTC');
-            if (!isNaN(serverTime)) {
-                lastUpdatedElement.textContent = serverTime.toLocaleString();
-            }
-        }
-        updateLastUpdated();
-
-        // Xử lý form thêm coin
-        document.getElementById('addCoinForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const coinName = document.getElementById('coin_name').value;
-            const exchange = document.getElementById('exchange').value;
-
-            const formData = new FormData();
-            formData.append('symbol', coinName);
-            formData.append('exchange', exchange);
-
-            fetch('/add_coin', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.status === 'success') {
-                    location.reload();
-                }
-            })
-            .catch(error => console.error('Error adding coin:', error));
-        });
-
-        // Xử lý xóa coin
-        function confirmRemoveCoin(symbol) {
-            if (confirm(`Bạn có chắc chắn muốn ngừng theo dõi ${symbol} không?`)) {
-                const formData = new FormData();
-                formData.append('symbol', symbol);
-                fetch('/remove_coin', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    alert(data.message);
-                    if (data.status === 'success') {
-                        location.reload();
-                    }
-                })
-                .catch(error => console.error('Error removing coin:', error));
-            }
-        }
-
-        // Cập nhật giá và biến động 24h
-        function updatePricesAndChange() {
-            fetch('/get_prices')
-                .then(response => response.json())
-                .then(data => {
-                    for (const [coin, price] of Object.entries(data)) {
-                        document.querySelectorAll(`.price-cell[data-coin="${coin}"]`).forEach(cell => {
-                            cell.textContent = price.toFixed(2);
-                        });
-                    }
-                })
-                .catch(error => console.error('Error updating prices:', error));
-
-            fetch('/get_price_change_24h')
-                .then(response => response.json())
-                .then(data => {
-                    for (const [coin, change] of Object.entries(data)) {
-                        document.querySelectorAll(`.change-24h[data-coin="${coin}"]`).forEach(cell => {
-                            if (change !== null) {
-                                cell.textContent = change.toFixed(2) + '%';
-                                cell.classList.remove('positive', 'negative');
-                                cell.classList.add(change >= 0 ? 'positive' : 'negative');
-                            } else {
-                                cell.textContent = 'N/A';
-                            }
-                        });
-                    }
-                })
-                .catch(error => console.error('Error updating price change:', error));
-        }
-
-        setInterval(updatePricesAndChange, 10000);
-        updatePricesAndChange();
-
-        function toggleDetails(element) {
-            const coinBox = element.closest('.coin-box');
-            coinBox.classList.toggle('expanded');
-        }
-
-        function refreshAnalysis() {
-            const refreshBtn = document.getElementById('refreshBtn');
-            refreshBtn.disabled = true; // Vô hiệu hóa nút khi nhấn
-            fetch('/analyze')
-                .then(response => response.text())
-                .then(data => {
-                    console.log(data);
-                    location.reload(); // Tự động tải lại trang
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    refreshBtn.disabled = false; // Bật lại nút nếu lỗi
-                });
-        }
-
-        function toggleNotifications() {
-            const notificationBtn = document.getElementById('notificationBtn');
-            const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-
-            if (!notificationsEnabled) {
-                if ('Notification' in window) {
-                    const userResponse = confirm("Bạn có muốn nhận thông báo khi có biến động giá mới không?");
-                    if (userResponse) {
-                        Notification.requestPermission().then(permission => {
-                            if (permission === 'granted') {
-                                localStorage.setItem('notificationsEnabled', 'true');
-                                notificationBtn.textContent = 'Đã nhận thông báo';
-                                notificationBtn.classList.add('disabled');
-                                alert('Đã bật thông báo thành công!');
-                                new Notification('Thông báo thử nghiệm', {
-                                    body: 'Thông báo đã được bật thành công!',
-                                });
-                            } else {
-                                alert('Bạn đã từ chối nhận thông báo.');
-                            }
-                        });
-                    }
-                } else {
-                    alert('Trình duyệt của bạn không hỗ trợ thông báo.');
-                }
-            } else {
-                const userResponse = confirm("Bạn có muốn hủy thông báo không?");
-                if (userResponse) {
-                    localStorage.setItem('notificationsEnabled', 'false');
-                    notificationBtn.textContent = 'Nhận thông báo';
-                    notificationBtn.classList.remove('disabled');
-                    alert('Đã hủy thông báo thành công!');
-                }
-            }
-        }
-
-        function initNotificationButton() {
-            const notificationBtn = document.getElementById('notificationBtn');
-            const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-            if (notificationsEnabled) {
-                notificationBtn.textContent = 'Đã nhận thông báo';
-                notificationBtn.classList.add('disabled');
-            } else {
-                notificationBtn.textContent = 'Nhận thông báo';
-                notificationBtn.classList.remove('disabled');
-            }
-        }
-        initNotificationButton();
-
-        function checkBreakoutNotifications() {
-            const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-            if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
-                fetch('/get_prices')
-                    .then(response => response.json())
-                    .then(prices => {
-                        let breakoutOccurred = false;
-                        document.querySelectorAll('.coin-box').forEach(coinBox => {
-                            const coin = coinBox.getAttribute('data-coin');
-                            const price = prices[coin];
-                            if (price) {
-                                const support = parseFloat(coinBox.querySelector('.support').textContent);
-                                const resistance = parseFloat(coinBox.querySelector('.resistance').textContent);
-                                const breakoutDot = coinBox.querySelector('.breakout-dot');
-
-                                if (price < support && !breakoutDot) {
-                                    const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng hỗ trợ ${support.toFixed(2)}! Giá hiện tại: ${price}`;
-                                    coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
-                                    coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
-                                    new Notification(message);
-                                    breakoutOccurred = true;
-                                } else if (price > resistance && !breakoutDot) {
-                                    const message = `CẢNH BÁO: ${coin} đã phá vỡ vùng kháng cự ${resistance.toFixed(2)}! Giá hiện tại: ${price}`;
-                                    coinBox.insertAdjacentHTML('beforeend', '<div class="breakout-dot"></div>');
-                                    coinBox.insertAdjacentHTML('beforeend', `<p class="breakout-message">${message}</p>`);
-                                    new Notification(message);
-                                    breakoutOccurred = true;
-                                }
-                            }
-                        });
-                        if (breakoutOccurred) {
-                            refreshAnalysis();
-                        }
-                    })
-                    .catch(error => console.error('Error checking breakout:', error));
-            }
-        }
-
-        setInterval(checkBreakoutNotifications, 60000);
-        checkBreakoutNotifications();
-    </script>
-    <!-- Thêm vào phần <script> trong index.html -->
-<script>
-    // Lấy tin tức từ API
-    function fetchNews(category, tabId) {
-        fetch(`http://localhost:5001/news/${category}`)  // Thay bằng URL thực khi deploy
-            .then(response => response.json())
-            .then(data => {
-                const tabContent = document.getElementById(tabId);
-                tabContent.<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trading Bot</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        .tabs { overflow: hidden; border-bottom: 1px solid #ccc; }
-        .tab-button { background-color: #f1f1f1; border: none; padding: 10px 20px; cursor: pointer; }
-        .tab-button.active { background-color: #ccc; }
+        .tabs { 
+            display: flex; 
+            background-color: #f1f1f1; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            width: fit-content; 
+        }
+        .tab-button { 
+            background-color: #f1f1f1; 
+            border: none; 
+            padding: 10px 20px; 
+            cursor: pointer; 
+            transition: all 0.3s; 
+        }
+        .tab-button:first-child { border-radius: 20px 0 0 20px; }
+        .tab-button:last-child { border-radius: 0 20px 20px 0; }
+        .tab-button.active { 
+            color: #00b7eb; 
+            font-weight: bold; 
+            background-color: #e0e0e0; 
+        }
         .tab-content { display: none; padding: 20px; }
         .tab-content.active { display: block; }
-        .sub-tabs { margin-bottom: 10px; }
-        .sub-tab-item { background-color: #ddd; border: none; padding: 5px 15px; cursor: pointer; }
-        .sub-tab-item.active { background-color: #bbb; }
+        .sub-tabs { 
+            display: flex; 
+            background-color: #ddd; 
+            border-radius: 15px; 
+            width: fit-content; 
+            margin-bottom: 10px; 
+        }
+        .sub-tab-item { 
+            background-color: #ddd; 
+            border: none; 
+            padding: 5px 15px; 
+            cursor: pointer; 
+            transition: all 0.3s; 
+        }
+        .sub-tab-item:first-child { border-radius: 15px 0 0 15px; }
+        .sub-tab-item:last-child { border-radius: 0 15px 15px 0; }
+        .sub-tab-item.active { 
+            color: #00b7eb; 
+            font-weight: bold; 
+            background-color: #bbb; 
+        }
         .sub-tab-content { display: none; }
         .sub-tab-content.active { display: block; }
         ul { list-style-type: none; padding: 0; }
         li { margin: 5px 0; }
         a { text-decoration: none; color: #007BFF; }
         a:hover { text-decoration: underline; }
+        .coin-form { margin-top: 10px; }
     </style>
 </head>
 <body>
+    <h1>BOT TRADING</h1>
     <div class="tabs">
-        <button class="tab-button active" data-tab="analysis">Phân tích</button>
+        <button class="tab-button active" data-tab="analysis">Chỉ báo</button>
         <button class="tab-button" data-tab="news">Tin tức</button>
+        <button class="tab-button" data-tab="customize">Tùy chỉnh Coin</button>
     </div>
 
-    <!-- Tab Phân tích -->
+    <!-- Tab Chỉ báo (Phân tích) -->
     <div id="analysis-tab" class="tab-content active">
         <h2>Phân tích Crypto</h2>
         <p>Cập nhật lần cuối: {{ last_updated }}</p>
@@ -909,7 +79,7 @@
                 <p style="color: red;">{{ status.message }}</p>
             {% endif %}
         {% endfor %}
-        <button onclick="fetch('/analyze').then(() => location.reload())">Phân tích ngay</button>
+        <button onclick="fetch('/analyze').then(() => location.reload())">Làm mới phân tích</button>
     </div>
 
     <!-- Tab Tin tức -->
@@ -923,6 +93,28 @@
         <div id="crypto-tab" class="sub-tab-content active"></div>
         <div id="economics-tab" class="sub-tab-content"></div>
         <div id="sports-tab" class="sub-tab-content"></div>
+    </div>
+
+    <!-- Tab Tùy chỉnh Coin -->
+    <div id="customize-tab" class="tab-content">
+        <h2>Tùy chỉnh Coin</h2>
+        <div class="coin-form">
+            <h3>Thêm Coin</h3>
+            <form id="add-coin-form" onsubmit="addCoin(event)">
+                <input type="text" id="symbol" name="symbol" placeholder="Symbol (e.g., BTC)" required>
+                <input type="text" id="exchange" name="exchange" placeholder="Exchange (e.g., BINANCE)" required>
+                <button type="submit">Thêm</button>
+            </form>
+            <p id="add-coin-message"></p>
+        </div>
+        <div class="coin-form">
+            <h3>Xóa Coin</h3>
+            <form id="remove-coin-form" onsubmit="removeCoin(event)">
+                <input type="text" id="remove-symbol" name="symbol" placeholder="Symbol (e.g., BTCUSDT)" required>
+                <button type="submit">Xóa</button>
+            </form>
+            <p id="remove-coin-message"></p>
+        </div>
     </div>
 
     <script>
@@ -954,11 +146,15 @@
         // Lấy tin tức từ API
         function fetchNews(category, tabId) {
             fetch(`/news/${category}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log(`Data received for ${category}:`, data); // Debug dữ liệu
                     const tabContent = document.getElementById(tabId);
                     tabContent.innerHTML = '';
-                    if (data.length === 0) {
+                    if (!data || data.length === 0) {
                         tabContent.innerHTML = '<p>Chưa có tin tức để hiển thị.</p>';
                     } else {
                         const ul = document.createElement('ul');
@@ -976,6 +172,48 @@
                 });
         }
 
+        // Thêm coin
+        function addCoin(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('add-coin-form'));
+            fetch('/add_coin', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('add-coin-message').textContent = data.message;
+                if (data.status === 'success') {
+                    setTimeout(() => location.reload(), 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error adding coin:', error);
+                document.getElementById('add-coin-message').textContent = 'Lỗi khi thêm coin.';
+            });
+        }
+
+        // Xóa coin
+        function removeCoin(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('remove-coin-form'));
+            fetch('/remove_coin', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('remove-coin-message').textContent = data.message;
+                if (data.status === 'success') {
+                    setTimeout(() => location.reload(), 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error removing coin:', error);
+                document.getElementById('remove-coin-message').textContent = 'Lỗi khi xóa coin.';
+            });
+        }
+
         // Gọi khi tải trang
         document.addEventListener('DOMContentLoaded', () => {
             fetchNews('crypto', 'crypto-tab');
@@ -983,39 +221,5 @@
             fetchNews('sports', 'sports-tab');
         });
     </script>
-</body>
-</html>innerHTML = '';  // Xóa nội dung cũ
-                if (data.length === 0) {
-                    tabContent.innerHTML = '<p>Chưa có tin tức để hiển thị.</p>';
-                } else {
-                    const ul = document.createElement('ul');
-                    data.forEach(article => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `<a href="${article.url}" target="_blank">${article.title}</a>`;
-                        ul.appendChild(li);
-                    });
-                    tabContent.appendChild(ul);
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching news:', error);
-                document.getElementById(tabId).innerHTML = '<p>Lỗi khi tải tin tức.</p>';
-            });
-    }
-
-    // Gọi khi tải trang và khi chuyển tab
-    document.addEventListener('DOMContentLoaded', () => {
-        fetchNews('crypto', 'crypto-tab');
-        fetchNews('economics', 'economics-tab');
-    });
-
-    subTabItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            const category = e.target.getAttribute('data-sub-tab');
-            const tabId = `${category}-tab`;
-            fetchNews(category, tabId);
-        });
-    });
-</script>
 </body>
 </html>
