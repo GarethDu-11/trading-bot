@@ -859,5 +859,163 @@
         setInterval(checkBreakoutNotifications, 60000);
         checkBreakoutNotifications();
     </script>
+    <!-- Thêm vào phần <script> trong index.html -->
+<script>
+    // Lấy tin tức từ API
+    function fetchNews(category, tabId) {
+        fetch(`http://localhost:5001/news/${category}`)  // Thay bằng URL thực khi deploy
+            .then(response => response.json())
+            .then(data => {
+                const tabContent = document.getElementById(tabId);
+                tabContent.<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .tabs { overflow: hidden; border-bottom: 1px solid #ccc; }
+        .tab-button { background-color: #f1f1f1; border: none; padding: 10px 20px; cursor: pointer; }
+        .tab-button.active { background-color: #ccc; }
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
+        .sub-tabs { margin-bottom: 10px; }
+        .sub-tab-item { background-color: #ddd; border: none; padding: 5px 15px; cursor: pointer; }
+        .sub-tab-item.active { background-color: #bbb; }
+        .sub-tab-content { display: none; }
+        .sub-tab-content.active { display: block; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin: 5px 0; }
+        a { text-decoration: none; color: #007BFF; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <button class="tab-button active" data-tab="analysis">Phân tích</button>
+        <button class="tab-button" data-tab="news">Tin tức</button>
+    </div>
+
+    <!-- Tab Phân tích -->
+    <div id="analysis-tab" class="tab-content active">
+        <h2>Phân tích Crypto</h2>
+        <p>Cập nhật lần cuối: {{ last_updated }}</p>
+        {% for result in analysis_results %}
+            <pre>{{ result }}</pre>
+        {% endfor %}
+        {% for symbol, status in BREAKOUT_STATUS.items() %}
+            {% if status.message %}
+                <p style="color: red;">{{ status.message }}</p>
+            {% endif %}
+        {% endfor %}
+        <button onclick="fetch('/analyze').then(() => location.reload())">Phân tích ngay</button>
+    </div>
+
+    <!-- Tab Tin tức -->
+    <div id="news-tab" class="tab-content">
+        <h2>Tin tức</h2>
+        <div class="sub-tabs">
+            <button class="sub-tab-item active" data-sub-tab="crypto">Crypto</button>
+            <button class="sub-tab-item" data-sub-tab="economics">Kinh tế</button>
+            <button class="sub-tab-item" data-sub-tab="sports">Thể thao</button>
+        </div>
+        <div id="crypto-tab" class="sub-tab-content active"></div>
+        <div id="economics-tab" class="sub-tab-content"></div>
+        <div id="sports-tab" class="sub-tab-content"></div>
+    </div>
+
+    <script>
+        // Xử lý tab chính
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(`${button.getAttribute('data-tab')}-tab`).classList.add('active');
+            });
+        });
+
+        // Xử lý sub-tab trong Tin tức
+        const subTabItems = document.querySelectorAll('.sub-tab-item');
+        const subTabContents = document.querySelectorAll('.sub-tab-content');
+        subTabItems.forEach(item => {
+            item.addEventListener('click', () => {
+                subTabItems.forEach(btn => btn.classList.remove('active'));
+                subTabContents.forEach(content => content.classList.remove('active'));
+                item.classList.add('active');
+                document.getElementById(`${item.getAttribute('data-sub-tab')}-tab`).classList.add('active');
+                fetchNews(item.getAttribute('data-sub-tab'), `${item.getAttribute('data-sub-tab')}-tab`);
+            });
+        });
+
+        // Lấy tin tức từ API
+        function fetchNews(category, tabId) {
+            fetch(`/news/${category}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tabContent = document.getElementById(tabId);
+                    tabContent.innerHTML = '';
+                    if (data.length === 0) {
+                        tabContent.innerHTML = '<p>Chưa có tin tức để hiển thị.</p>';
+                    } else {
+                        const ul = document.createElement('ul');
+                        data.forEach(article => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<a href="${article.url}" target="_blank">${article.title}</a>`;
+                            ul.appendChild(li);
+                        });
+                        tabContent.appendChild(ul);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching news:', error);
+                    document.getElementById(tabId).innerHTML = '<p>Lỗi khi tải tin tức.</p>';
+                });
+        }
+
+        // Gọi khi tải trang
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchNews('crypto', 'crypto-tab');
+            fetchNews('economics', 'economics-tab');
+            fetchNews('sports', 'sports-tab');
+        });
+    </script>
+</body>
+</html>innerHTML = '';  // Xóa nội dung cũ
+                if (data.length === 0) {
+                    tabContent.innerHTML = '<p>Chưa có tin tức để hiển thị.</p>';
+                } else {
+                    const ul = document.createElement('ul');
+                    data.forEach(article => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="${article.url}" target="_blank">${article.title}</a>`;
+                        ul.appendChild(li);
+                    });
+                    tabContent.appendChild(ul);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching news:', error);
+                document.getElementById(tabId).innerHTML = '<p>Lỗi khi tải tin tức.</p>';
+            });
+    }
+
+    // Gọi khi tải trang và khi chuyển tab
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchNews('crypto', 'crypto-tab');
+        fetchNews('economics', 'economics-tab');
+    });
+
+    subTabItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            const category = e.target.getAttribute('data-sub-tab');
+            const tabId = `${category}-tab`;
+            fetchNews(category, tabId);
+        });
+    });
+</script>
 </body>
 </html>
