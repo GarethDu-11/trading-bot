@@ -99,7 +99,7 @@
         }
         .tab-item.active {
             background-color: #f4f4f4;
-            text-shadow: 0 0 10px #00b7eb, 0 0 20px #00b7eb, 0 0 30px #00b7eb; /* Xanh nước biển, sáng rộng hơn */
+            text-shadow: 0 0 10px #00b7eb, 0 0 20px #00b7eb, 0 0 30px #00b7eb;
         }
         .highlight {
             position: absolute;
@@ -228,19 +228,6 @@
         .notification-btn.disabled:hover {
             background-color: #c82333;
         }
-        .reset-btn {
-            margin-left: 10px;
-            padding: 5px 10px;
-            background-color: #ffffff;
-            color: #dc3545;
-            border: 1px solid #dc3545;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .reset-btn:hover {
-            background-color: #f8f9fa;
-        }
         .refresh-btn {
             margin-left: 10px;
             padding: 5px 10px;
@@ -254,6 +241,10 @@
         .refresh-btn:hover {
             background-color: #218838;
         }
+        .refresh-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
         .last-updated {
             font-style: italic;
             color: #666;
@@ -266,7 +257,7 @@
             .daily-analysis h2 {
                 font-size: 1.2em;
             }
-            .notification-btn, .reset-btn, .refresh-btn {
+            .notification-btn, .refresh-btn {
                 margin-left: 5px;
                 padding: 4px 8px;
                 font-size: 12px;
@@ -456,8 +447,7 @@
                 <div class="daily-analysis">
                     <h2>Phân tích hàng ngày</h2>
                     <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">Nhận thông báo</button>
-                    <button class="reset-btn" onclick="resetAnalysis()">Reset</button>
-                    <button class="refresh-btn" onclick="refreshAnalysis()">Làm mới phân tích</button>
+                    <button class="refresh-btn" id="refreshBtn" onclick="refreshAnalysis()">Làm mới phân tích</button>
                     <p class="last-updated">Cập nhật lần cuối: <span id="last-updated">{{ last_updated }}</span></p>
                     {% if analysis_results %}
                         {% for result in analysis_results %}
@@ -660,29 +650,18 @@
         }
 
         function refreshAnalysis() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.disabled = true; // Vô hiệu hóa nút khi nhấn
             fetch('/analyze')
                 .then(response => response.text())
                 .then(data => {
                     console.log(data);
-                    location.reload();
+                    location.reload(); // Tự động tải lại trang
                 })
-                .catch(error => console.error('Error:', error));
-        }
-
-        function resetAnalysis() {
-            if (confirm('Bạn có chắc chắn muốn reset toàn bộ danh sách coin không?')) {
-                fetch('/reset_coins', {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    alert(data.message);
-                    if (data.status === 'success') {
-                        location.reload();
-                    }
-                })
-                .catch(error => console.error('Error resetting coins:', error));
-            }
+                .catch(error => {
+                    console.error('Error:', error);
+                    refreshBtn.disabled = false; // Bật lại nút nếu lỗi
+                });
         }
 
         function toggleNotifications() {

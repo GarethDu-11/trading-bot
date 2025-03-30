@@ -20,6 +20,70 @@ default_coins = [
 tracked_coins = default_coins.copy()
 analysis_cache = {"results": [], "breakout_status": {}, "last_updated": None}
 
+# Hàm nhận diện mẫu nến
+def detect_candlestick_pattern(df):
+    last_candle = df.iloc[-1]
+    open_price = last_candle['open']
+    close_price = last_candle['close']
+    high_price = last_candle['high']
+    low_price = last_candle['low']
+    body_size = abs(close_price - open_price)
+    upper_shadow = high_price - max(open_price, close_price)
+    lower_shadow = min(open_price, close_price) - low_price
+
+    # Doji
+    if body_size < (high_price - low_price) * 0.1:
+        return "Doji"
+    # Hammer
+    elif lower_shadow > body_size * 2 and upper_shadow < body_size * 0.5 and close_price > open_price:
+        return "Hammer"
+    # Bearish Engulfing
+    elif len(df) > 1 and df['close'].iloc[-2] > df['open'].iloc[-2] and close_price < open_price and close_price < df['open'].iloc[-2] and open_price > df['close'].iloc[-2]:
+        return "Bearish Engulfing"
+    # Bullish Engulfing
+    elif len(df) > 1 and df['close'].iloc[-2] < df['open'].iloc[-2] and close_price > open_price and close_price > df['open'].iloc[-2] and open_price < df['close'].iloc[-2]:
+        return "Bullish Engulfing"
+    else:
+        return "N/A"
+
+# Hàm nhận diện mẫu hình giá
+def detect_price_pattern(df):
+    maxima = argrelextrema(df['high'].values, np.greater, order=5)[0]
+    minima = argrelextrema(df['low'].values, np.less, order=5)[0]
+    highs = df['high'].iloc[maxima].tolist()
+    lows = df['low'].iloc[minima].tolist()
+
+    if len(highs) < 2 or len(lows) < 2:
+        return "N/A", 0
+
+    # Double Top
+    if len(highs) >= 2 and abs(highs[-1] - highs[-2]) / highs[-1] < 0.02:
+        similarity = (1 - abs(highs[-1] - highs[-2]) / highs[-1]) * 100
+        return "Double Top", similarity
+    # Double Bottom
+    elif len(lows) >= 2 and abs(lows[-1] - lows[-2]) / lows[-1] < 0.02:
+        similarity = (1 - abs(lows[-1] - lows[-2]) / lows[-1]) * 100
+        return "Double Bottom", similarity
+    else:
+        return "N/A", 0
+
+# Hàm xác định xu hướng
+def determine_trend(df):
+    maxima = argrelextrema(df['high'].values, np.greater, order=5)[0][-4:]  # 4 đỉnh gần nhất
+    minima = argrelextrema(df['low'].values, np.less, order=5)[0][-4:]     # 4 đáy gần nhất
+    if len(maxima) < 2 or len(minima) < 2:
+        return "Đi ngang"
+
+    high_trend = np.mean(df['high'].iloc[maxima[-2:]].values) - np.mean(df['high'].iloc[maxima[:2]].values)
+    low_trend = np.mean(df['low'].iloc[minima[-2:]].values) - np.mean(df['low'].iloc[minima[:2]].values)
+    
+    if high_trend > 0 and low_trend > 0:
+        return "Tăng"
+    elif high_trend < 0 and low_trend < 0:
+        return "Giảm"
+    else:
+        return "Đi ngang"
+
 # Hàm phân tích hàng ngày
 def daily_analysis():
     global analysis_cache
@@ -29,7 +93,7 @@ def daily_analysis():
         symbol = coin["symbol"]
         exchange = coin["exchange"]
         try:
-            # Lấy dữ liệu ngày
+            # Lấy dữ liệu
             df_daily = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=100)
             df_4h = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_4_hour, n_bars=100)
 
@@ -60,36 +124,38 @@ def daily_analysis():
             elif breakout_status[symbol]["resistance"]:
                 breakout_status[symbol]["message"] = f"CẢNH BÁO: {symbol} đã phá vỡ vùng kháng cự {nearest_resistance}!"
 
-            # Xu hướng chung
-            trend = "Tăng" if df_daily['close'].iloc[-1] > df_daily['close'].iloc[-2] else "Giảm" if df_daily['close'].iloc[-1] < df_daily['close'].iloc[-2] else "Đi ngang"
+            # Nhận diện mẫu nến và mẫu hình giá
+            candlestick_pattern = detect_candlestick_pattern(df_4h)
+            price_pattern, similarity = detect_price_pattern(df_daily)
+            trend = determine_trend(df_daily)
 
             # Kết quả phân tích
             result = (f"{symbol}:\n"
                       f"Giá hiện tại: {current_price:.2f}\n"
                       f"Hỗ trợ gần nhất: {nearest_support}, Kháng cự gần nhất: {nearest_resistance}\n"
                       f"Hỗ trợ mạnh: {strong_support}, Kháng cự mạnh: {strong_resistance}\n"
-                      f"Mẫu nến 4H: N/A\n"
-                      f"Mẫu hình giá 1D: N/A (0%)\n"
+                      f"Mẫu nến 4H: {candlestick_pattern}\n"
+                      f"Mẫu hình giá 1D: {price_pattern} ({similarity:.0f}% tương đồng)\n"
                       f"Hợp lưu: N/A\n"
                       f"Xu hướng chung: {trend}\n")
             results.append(result)
         except Exception as e:
             results.append(f"{symbol}: Lỗi khi phân tích - {str(e)}\n")
 
-    # Cập nhật cache và xóa dữ liệu cũ
+    # Cập nhật cache
     analysis_cache = {
         "results": results,
         "breakout_status": breakout_status,
         "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
-# Chạy phân tích định kỳ mỗi 4 giờ
+# Chạy phân tích định kỳ mỗi 1 giờ
 def run_schedule():
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-schedule.every(4).hours.do(daily_analysis)
+schedule.every(1).hours.do(daily_analysis)
 threading.Thread(target=run_schedule, daemon=True).start()
 
 # Endpoint chính
@@ -113,7 +179,7 @@ def add_coin():
     new_coin = {"symbol": symbol, "exchange": exchange}
     if new_coin not in tracked_coins:
         tracked_coins.append(new_coin)
-        daily_analysis()  # Cập nhật phân tích ngay khi thêm coin
+        daily_analysis()
         return jsonify({"status": "success", "message": f"Đã thêm {symbol} vào danh sách theo dõi!"})
     return jsonify({"status": "error", "message": f"{symbol} đã có trong danh sách theo dõi!"})
 
@@ -123,16 +189,8 @@ def remove_coin():
     symbol = request.form.get('symbol')
     global tracked_coins
     tracked_coins = [coin for coin in tracked_coins if coin["symbol"] != symbol]
-    daily_analysis()  # Cập nhật phân tích sau khi xóa
-    return jsonify({"status": "success", "message": f"Đã xóa {symbol} khỏi danh sách theo dõi!"})
-
-# Endpoint reset danh sách coin
-@app.route('/reset_coins', methods=['POST'])
-def reset_coins():
-    global tracked_coins
-    tracked_coins = default_coins.copy()
     daily_analysis()
-    return jsonify({"status": "success", "message": "Đã reset danh sách coin!"})
+    return jsonify({"status": "success", "message": f"Đã xóa {symbol} khỏi danh sách theo dõi!"})
 
 # Endpoint lấy giá hiện tại
 @app.route('/get_prices', methods=['GET'])
