@@ -99,7 +99,7 @@
         }
         .tab-item.active {
             background-color: #f4f4f4;
-            text-shadow: 0 0 5px #ff00ff, 0 0 10px #00ffff, 0 0 15px #ff0000;
+            text-shadow: 0 0 10px #00b7eb, 0 0 20px #00b7eb, 0 0 30px #00b7eb; /* Xanh nước biển, sáng rộng hơn */
         }
         .highlight {
             position: absolute;
@@ -231,15 +231,15 @@
         .reset-btn {
             margin-left: 10px;
             padding: 5px 10px;
-            background-color: #ffffff; /* Màu trắng */
-            color: #dc3545; /* Màu chữ đỏ */
-            border: 1px solid #dc3545; /* Viền đỏ */
+            background-color: #ffffff;
+            color: #dc3545;
+            border: 1px solid #dc3545;
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
         }
         .reset-btn:hover {
-            background-color: #f8f9fa; /* Màu xám nhạt khi hover */
+            background-color: #f8f9fa;
         }
         .refresh-btn {
             margin-left: 10px;
@@ -651,7 +651,7 @@
                 .catch(error => console.error('Error updating price change:', error));
         }
 
-        setInterval(updatePricesAndChange, 10000); // Cập nhật giá và % mỗi 10 giây
+        setInterval(updatePricesAndChange, 10000);
         updatePricesAndChange();
 
         function toggleDetails(element) {
@@ -659,15 +659,11 @@
             coinBox.classList.toggle('expanded');
         }
 
-        let lastAnalysisTime = Date.now(); // Thời gian phân tích cuối cùng
-        const FOUR_HOURS = 4 * 60 * 60 * 1000; // 4 giờ tính bằng milliseconds
-
         function refreshAnalysis() {
             fetch('/analyze')
                 .then(response => response.text())
                 .then(data => {
                     console.log(data);
-                    lastAnalysisTime = Date.now(); // Cập nhật thời gian phân tích
                     location.reload();
                 })
                 .catch(error => console.error('Error:', error));
@@ -768,30 +764,16 @@
                                 }
                             }
                         });
-                        // Nếu có phá vỡ, phân tích lại toàn bộ
                         if (breakoutOccurred) {
                             refreshAnalysis();
                         }
                     })
                     .catch(error => console.error('Error checking breakout:', error));
             }
-
-            // Kiểm tra nếu quá 4 giờ kể từ lần phân tích cuối cùng
-            const currentTime = Date.now();
-            if (currentTime - lastAnalysisTime >= FOUR_HOURS) {
-                refreshAnalysis();
-            }
         }
 
-        setInterval(checkBreakoutNotifications, 60000); // Kiểm tra phá vỡ mỗi 1 phút
+        setInterval(checkBreakoutNotifications, 60000);
         checkBreakoutNotifications();
-
-        // Chỉ phân tích 1 lần khi vào trang
-        let hasAnalyzed = localStorage.getItem('hasAnalyzed') === 'true';
-        if (!hasAnalyzed) {
-            refreshAnalysis();
-            localStorage.setItem('hasAnalyzed', 'true');
-        }
     </script>
 </body>
 </html>
