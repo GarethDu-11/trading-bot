@@ -130,6 +130,66 @@
             }
         }
 
+        /* Sub-Tab Section */
+        .sub-tab-section {
+            margin-top: 10px;
+        }
+        .sub-tab-header {
+            position: relative;
+            display: inline-block;
+        }
+        .sub-tab-items {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+        .sub-tab-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            background-color: #fff;
+            transition: background-color 0.3s;
+            border-radius: 15px;
+            margin: 0;
+        }
+        .sub-tab-item:hover {
+            background-color: #f1f1f1;
+        }
+        .sub-tab-item.active {
+            background-color: #f4f4f4;
+            text-shadow: 0 0 5px #00b7eb, 0 0 10px #00b7eb;
+        }
+        .sub-highlight {
+            position: absolute;
+            bottom: 0;
+            height: 2px;
+            background-color: #ff6200;
+            transition: all 0.3s ease;
+        }
+        .sub-tab-content {
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 0 0 8px 8px;
+        }
+        .sub-tab-content-item {
+            display: none;
+        }
+        .sub-tab-content-item.active {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .sub-tab-item {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .sub-tab-content {
+                padding: 8px;
+            }
+        }
+
         /* Form nhập liệu */
         .search-section {
             text-align: center;
@@ -515,7 +575,27 @@
             </div>
             <!-- Nội dung Tin tức -->
             <div class="tab-content-item" id="news-tab">
-                <p>Chưa có tin tức nào để hiển thị.</p>
+                <div class="sub-tab-section">
+                    <div class="sub-tab-header">
+                        <ul class="sub-tab-items">
+                            <li class="sub-tab-item active" data-sub-tab="crypto">Crypto</li>
+                            <li class="sub-tab-item" data-sub-tab="economics">Kinh tế</li>
+                            <li class="sub-tab-item" data-sub-tab="sports">Thể thao</li>
+                        </ul>
+                        <div class="sub-highlight" id="sub-highlight"></div>
+                    </div>
+                    <div class="sub-tab-content">
+                        <div class="sub-tab-content-item active" id="crypto-tab">
+                            <p>Chưa có tin tức Crypto để hiển thị.</p>
+                        </div>
+                        <div class="sub-tab-content-item" id="economics-tab">
+                            <p>Chưa có tin tức Kinh tế để hiển thị.</p>
+                        </div>
+                        <div class="sub-tab-content-item" id="sports-tab">
+                            <p>Chưa có tin tức Thể thao để hiển thị.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- Nội dung Tùy chỉnh Coin -->
             <div class="tab-content-item" id="customize-coin-tab">
@@ -554,6 +634,31 @@
                 highlight.style.left = item.offsetLeft + 'px';
             });
         });
+
+        // Sub-Tab functionality
+        const subTabItems = document.querySelectorAll('.sub-tab-item');
+        const subHighlight = document.getElementById('sub-highlight');
+        const subTabContentItems = document.querySelectorAll('.sub-tab-content-item');
+
+        if (subTabItems.length > 0) {
+            subTabItems[0].classList.add('active');
+            subTabContentItems[0].classList.add('active');
+            subHighlight.style.width = subTabItems[0].offsetWidth + 'px';
+            subHighlight.style.left = subTabItems[0].offsetLeft + 'px';
+
+            subTabItems.forEach((item, index) => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    subTabItems.forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                    subTabContentItems.forEach((contentItem, contentIndex) => {
+                        contentItem.classList.toggle('active', contentIndex === index);
+                    });
+                    subHighlight.style.width = item.offsetWidth + 'px';
+                    subHighlight.style.left = item.offsetLeft + 'px';
+                });
+            });
+        }
 
         // Sửa thời gian "Last updated"
         function updateLastUpdated() {
