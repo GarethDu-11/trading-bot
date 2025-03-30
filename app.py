@@ -63,13 +63,13 @@ def detect_price_pattern(df):
 
 # Hàm xác định xu hướng
 def determine_trend(df):
-    maxima = argrelextrema(df['high'].values, np.greater, order=5)[0][-4:]
-    minima = argrelextrema(df['low'].values, np.less, order=5)[0][-4:]
+    maxima = argrelextrema(df['high'].values, np.greater, order=5)[0][-4:]  # 4 đỉnh gần nhất
+    minima = argrelextrema(df['low'].values, np.less, order=5)[0][-4:]     # 4 đáy gần nhất
     if len(maxima) < 2 or len(minima) < 2:
         return "Đi ngang"
 
     high_trend = np.mean(df['high'].iloc[maxima[-2:]].values) - np.mean(df['high'].iloc[maxima[:2]].values)
-    low_trend = np.mean(df['low'].iloc[minima[-2:]].valuesstatic/images/icon-error.png)low_trend = np.mean(df['low'].iloc[minima[-2:]].values) - np.mean(df['low'].iloc[minima[:2]].values)
+    low_trend = np.mean(df['low'].iloc[minima[-2:]].values) - np.mean(df['low'].iloc[minima[:2]].values)
     
     if high_trend > 0 and low_trend > 0:
         return "Tăng"
