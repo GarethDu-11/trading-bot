@@ -1,7 +1,7 @@
-flask==2.2.0
+flask==3.0.3
 pandas==2.2.3
-numpy==1.24.4
-tvdatafeed==1.17.0
+numpy==2.1.2
+tvdatafeed==2.1.0
 schedule==1.2.2
 scipy==1.15.2
 scikit-learn==1.6.1
@@ -15,3 +15,4 @@ python-dateutil==2.9.0.post0
 pytz==2025.2
 tzdata==2025.2
 urllib3==2.3.0
+gunicorn==22.0.0
