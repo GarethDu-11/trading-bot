@@ -1,7 +1,7 @@
 flask==2.2.0
 pandas==2.2.3
 numpy==1.24.4
-tvdatafeed==2.1.0
+tvdatafeed==1.17.0
 schedule==1.2.2
 scipy==1.15.2
 scikit-learn==1.6.1
