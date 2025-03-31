@@ -11,6 +11,10 @@ from sklearn.preprocessing import StandardScaler
 import requests
 import feedparser
 import logging
+from bs4 import BeautifulSoup
+from datetime import datetime
+from pywebpush import webpush
+import json
 
 app = Flask(__name__)
 
@@ -20,8 +24,13 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 # Khởi tạo TvDatafeed
 tv = TvDatafeed()
 
-# API Key cho NewsAPI (nên thay bằng biến môi trường trong thực tế)
+# API Key cho NewsAPI
 NEWS_API_KEY = "e8dea5c6f2894640ba6676a7d7b37943"
+
+# VAPID Keys cho Web Push
+VAPID_PUBLIC_KEY = "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFK3dsNkJlQ25uZWR5U2dBZG0wNytCbmhwNG10dAppU3YwaHVxamxDdWNkYUxjQW03VndUZUZ0Y1hGRHo1ZEh3OWd4SnExb1NJTGFpOTV0RFd6NGZEUzN3PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg"  # Thay bằng key thật
+VAPID_PRIVATE_KEY = "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZ1JQbk9yYWxaek11WjhuQTkKVFRzdzA4YTdXelRXWHgvaUo2dWJ4WWdvcXkyaFJBTkNBQVQ3Q1hvRjRLZWQ1M0pLQUIyYlR2NEdlR25pYTIySgpLL1NHNnFPVUs1eDFvdHdDYnRYQk40VzF4Y1VQUGwwZkQyREVtcldoSWd0cUwzbTBOYlBoOE5MZgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg"  # Thay bằng key thật
+VAPID_CLAIMS = {"sub": "mailto:csgtdu@gmail.com"}
 
 # RSS Feeds cho tin tức Crypto
 RSS_FEEDS = {
@@ -32,7 +41,7 @@ RSS_FEEDS = {
     }
 }
 
-# Danh sách coin mặc định và biến lưu trữ
+# Danh sách coin mặc định
 default_coins = [
     {"symbol": "BTCUSDT", "exchange": "BINANCE"},
     {"symbol": "ETHUSDT", "exchange": "BINANCE"},
@@ -41,6 +50,7 @@ default_coins = [
 ]
 tracked_coins = default_coins.copy()
 analysis_cache = {"results": [], "breakout_status": {}, "last_updated": None}
+news_cache = {"crypto": [], "economics": [], "sports": [], "last_updated": None}
 
 # Huấn luyện mô hình Machine Learning
 def train_price_pattern_model():
@@ -77,26 +87,10 @@ def detect_candlestick_pattern(df):
         return "Hammer"
     elif upper_shadow > body_size * 2 and lower_shadow < body_size * 0.5 and c < o:
         return "Shooting Star"
-    elif pc < po and c > o and c > po and o < pc:
-        return "Bullish Engulfing"
-    elif pc > po and c < o and c < po and o > pc:
-        return "Bearish Engulfing"
-    elif pc < po and c > o and o > pc and c < po:
-        return "Bullish Harami"
-    elif pc > po and c < o and o < pc and c > po:
-        return "Bearish Harami"
-    if len(df) > 2 and df['close'].iloc[-3] > df['open'].iloc[-3] and pc < po and c > o and c > (df['close'].iloc[-3] + po) / 2:
-        return "Morning Star"
-    elif len(df) > 2 and df['close'].iloc[-3] < df['open'].iloc[-3] and pc > po and c < o and c < (df['close'].iloc[-3] + po) / 2:
-        return "Evening Star"
-    elif lower_shadow > body_size * 2 and upper_shadow < body_size * 0.5 and c < o:
-        return "Hanging Man"
-    elif upper_shadow > body_size * 2 and lower_shadow < body_size * 0.5 and c > o:
-        return "Inverted Hammer"
     else:
         return "N/A"
 
-# Hàm nhận diện mẫu hình giá với Machine Learning
+# Hàm nhận diện mẫu hình giá
 def detect_price_pattern(df):
     maxima = argrelextrema(df['high'].values, np.greater, order=5)[0]
     minima = argrelextrema(df['low'].values, np.less, order=5)[0]
@@ -119,42 +113,11 @@ def detect_price_pattern(df):
     patterns = {
         "Double Top": (len(highs) >= 2 and abs(highs[-1] - highs[-2]) / highs[-1] < 0.02, "Đỉnh Đôi"),
         "Double Bottom": (len(lows) >= 2 and abs(lows[-1] - lows[-2]) / lows[-1] < 0.02, "Đáy Đôi"),
-        "Triple Top": (len(highs) >= 3 and max([abs(highs[i] - highs[j]) for i, j in [(0, 1), (1, 2), (0, 2)]]) / max(highs) < 0.03, "Đỉnh Ba"),
-        "Triple Bottom": (len(lows) >= 3 and max([abs(lows[i] - lows[j]) for i, j in [(0, 1), (1, 2), (0, 2)]]) / max(lows) < 0.03, "Đáy Ba"),
-        "Head and Shoulders": (len(highs) >= 3 and highs[-2] > highs[-1] and highs[-2] > highs[-3] and abs(highs[-1] - highs[-3]) / highs[-2] < 0.05, "Đầu và Vai"),
-        "Inverse Head and Shoulders": (len(lows) >= 3 and lows[-2] < lows[-1] and lows[-2] < lows[-3] and abs(lows[-1] - lows[-3]) / lows[-2] < 0.05, "Đầu và Vai Ngược"),
-        "Rising Wedge": (len(highs) >= 3 and len(lows) >= 3 and highs[-1] > highs[-2] > highs[-3] and lows[-1] > lows[-2] > lows[-3] and (highs[-1] - lows[-1]) < (highs[-3] - lows[-3]), "Nêm Tăng"),
-        "Falling Wedge": (len(highs) >= 3 and len(lows) >= 3 and highs[-1] < highs[-2] < highs[-3] and lows[-1] < lows[-2] < lows[-3] and (highs[-1] - lows[-1]) > (highs[-3] - lows[-3]), "Nêm Giảm"),
-        "Bullish Reversal": (len(lows) >= 2 and lows[-1] > lows[-2] and df['close'].iloc[-1] > df['open'].iloc[-1], "Đảo Chiều Tăng"),
-        "Bearish Reversal": (len(highs) >= 2 and highs[-1] < highs[-2] and df['close'].iloc[-1] < df['open'].iloc[-1], "Đảo Chiều Giảm"),
-        "Bullish Flag": (len(highs) >= 2 and len(lows) >= 2 and highs[-1] < highs[-2] and lows[-1] > lows[-2] and df['close'].iloc[-1] > df['close'].iloc[-2], "Cờ Tăng"),
-        "Bearish Flag": (len(highs) >= 2 and len(lows) >= 2 and highs[-1] > highs[-2] and lows[-1] < lows[-2] and df['close'].iloc[-1] < df['close'].iloc[-2], "Cờ Giảm"),
-        "Symmetrical Triangle": (len(highs) >= 3 and len(lows) >= 3 and highs[-1] < highs[-2] and lows[-1] > lows[-2] and (highs[-1] - lows[-1]) < (highs[-2] - lows[-2]), "Tam Giác Đối Xứng"),
-        "Ascending Triangle": (len(highs) >= 3 and len(lows) >= 3 and abs(highs[-1] - highs[-2]) / highs[-1] < 0.02 and lows[-1] > lows[-2], "Tam Giác Tăng"),
-        "Descending Triangle": (len(highs) >= 3 and len(lows) >= 3 and highs[-1] < highs[-2] and abs(lows[-1] - lows[-2]) / lows[-1] < 0.02, "Tam Giác Giảm"),
-        "Bullish Pennant": (len(highs) >= 3 and len(lows) >= 3 and highs[-1] < highs[-2] and lows[-1] > lows[-2] and (highs[-1] - lows[-1]) < (highs[-2] - lows[-2]) and df['close'].iloc[-1] > df['close'].iloc[-2], "Cờ Đuôi Nheo Tăng"),
-        "Bearish Pennant": (len(highs) >= 3 and len(lows) >= 3 and highs[-1] > highs[-2] and lows[-1] < lows[-2] and (highs[-1] - lows[-1]) < (highs[-2] - lows[-2]) and df['close'].iloc[-1] < df['close'].iloc[-2], "Cờ Đuôi Nheo Giảm"),
-        "Rectangle": (len(highs) >= 2 and len(lows) >= 2 and abs(highs[-1] - highs[-2]) / highs[-1] < 0.02 and abs(lows[-1] - lows[-2]) / lows[-1] < 0.02, "Hình Chữ Nhật"),
-        "Channel Up": (len(highs) >= 3 and len(lows) >= 3 and highs[-1] > highs[-2] > highs[-3] and lows[-1] > lows[-2] > lows[-3], "Kênh Tăng"),
-        "Channel Down": (len(highs) >= 3 and len(lows) >= 3 and highs[-1] < highs[-2] < highs[-3] and lows[-1] < lows[-2] < lows[-3], "Kênh Giảm"),
-        "Cup and Handle": (len(lows) >= 3 and lows[-2] < lows[-1] and lows[-2] < lows[-3] and highs[-1] < highs[-2], "Cốc và Tay Cầm"),
-        "Inverse Cup and Handle": (len(highs) >= 3 and highs[-2] > highs[-1] and highs[-2] > highs[-3] and lows[-1] > lows[-2], "Cốc và Tay Cầm Ngược"),
-        "Rounding Bottom": (len(lows) >= 3 and lows[-1] > lows[-2] and lows[-2] < lows[-3], "Đáy Tròn"),
-        "Rounding Top": (len(highs) >= 3 and highs[-1] < highs[-2] and highs[-2] > highs[-3], "Đỉnh Tròn"),
-        "V Top": (len(highs) >= 2 and len(lows) >= 2 and highs[-1] < highs[-2] and lows[-1] > lows[-2], "Đỉnh Chữ V"),
-        "V Bottom": (len(highs) >= 2 and len(lows) >= 2 and highs[-1] > highs[-2] and lows[-1] < lows[-2], "Đáy Chữ V"),
-        "Spike Top": (len(highs) >= 2 and highs[-1] > highs[-2] * 1.1, "Đỉnh Nhọn"),
-        "Spike Bottom": (len(lows) >= 2 and lows[-1] < lows[-2] * 0.9, "Đáy Nhọn"),
-        "Broadening Top": (len(highs) >= 3 and highs[-1] > highs[-2] and highs[-2] < highs[-3] and lows[-1] < lows[-2], "Đỉnh Mở Rộng"),
-        "Broadening Bottom": (len(lows) >= 3 and lows[-1] < lows[-2] and lows[-2] > lows[-3] and highs[-1] > highs[-2], "Đáy Mở Rộng")
     }
-
     for pattern, (condition, vn_name) in patterns.items():
         if condition:
-            if pattern == ml_prediction:
-                return pattern, max(ml_confidence, 90), vn_name
             return pattern, 90, vn_name
-    return ml_prediction, ml_confidence, "Dự đoán ML" if ml_prediction != "N/A" else "Không xác định"
+    return ml_prediction, ml_confidence, "Không xác định"
 
 # Hàm xác định xu hướng
 def determine_trend(df):
@@ -220,7 +183,7 @@ def daily_analysis():
                       f"Hỗ trợ gần nhất: {nearest_support}, Kháng cự gần nhất: {nearest_resistance}\n"
                       f"Hỗ trợ mạnh: {strong_support}, Kháng cự mạnh: {strong_resistance}\n"
                       f"Mẫu nến 4H: {candlestick_pattern}\n"
-                      f"Mẫu hình giá 1D: {price_pattern} ({vn_pattern}) - {similarity:.0f}% tương đồng\n"
+                      f"Mẫu hình giá 1D: {price_pattern} ({vn_pattern}) - {similarity:.0f}%\n"
                       f"Hợp lưu: N/A\n"
                       f"Xu hướng chung: {trend}\n")
             results.append(result)
@@ -233,38 +196,71 @@ def daily_analysis():
         "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
-# Hàm lấy tin tức từ NewsAPI (Bloomberg, Reuters)
-def get_newsapi_articles(category):
-    url = f"https://newsapi.org/v2/top-headlines?sources={category}&apiKey={NEWS_API_KEY}"
+# Hàm lấy nội dung bài viết và tóm tắt
+def summarize_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        paragraphs = soup.find_all('p')
+        text = ' '.join(p.get_text() for p in paragraphs[:5])
+        words = text.split()
+        if len(words) > 200:
+            text = ' '.join(words[:200]) + '...'
+        return text
+    except Exception as e:
+        logging.error(f"Error summarizing {url}: {str(e)}")
+        return "Không thể tóm tắt bài viết này."
+
+# Hàm lấy tin tức
+def fetch_news():
+    global news_cache
+    news = {"crypto": [], "economics": [], "sports": []}
+    
+    for source, url in RSS_FEEDS["crypto"].items():
+        try:
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:5]:
+                summary = summarize_article(entry.link)
+                news["crypto"].append({
+                    "title": entry.title,
+                    "url": entry.link,
+                    "summary": summary
+                })
+        except Exception as e:
+            logging.error(f"Error parsing RSS {source}: {str(e)}")
+
+    url = f"https://newsapi.org/v2/top-headlines?category=business&language=en&apiKey={NEWS_API_KEY}"
     try:
         response = requests.get(url)
-        response.raise_for_status()
         data = response.json()
-        articles = [{"title": article["title"], "url": article["url"]} for article in data["articles"][:5]]
-        logging.debug(f"Fetched {len(articles)} articles from NewsAPI for {category}")
-        return articles
+        for article in data["articles"][:5]:
+            summary = summarize_article(article["url"])
+            news["economics"].append({
+                "title": article["title"],
+                "url": article["url"],
+                "summary": summary
+            })
     except Exception as e:
-        logging.error(f"Error fetching NewsAPI for {category}: {str(e)}")
-        return []
+        logging.error(f"Error fetching NewsAPI economics: {str(e)}")
 
-# Hàm lấy tin tức từ RSS
-def get_rss_articles(feed_url):
-    try:
-        feed = feedparser.parse(feed_url)
-        articles = [{"title": entry.title, "url": entry.link} for entry in feed.entries[:5]]
-        logging.debug(f"Parsed {len(articles)} articles from RSS feed {feed_url}")
-        return articles
-    except Exception as e:
-        logging.error(f"Error parsing RSS feed {feed_url}: {str(e)}")
-        return []
+    news["sports"] = [{"title": "Chưa có tin tức", "url": "#", "summary": "Chưa có dữ liệu."}]
 
-# Chạy phân tích định kỳ mỗi 1 giờ
+    news_cache = {
+        "crypto": news["crypto"],
+        "economics": news["economics"],
+        "sports": news["sports"],
+        "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+# Lên lịch
+schedule.every().day.at("18:00").do(fetch_news)
+schedule.every(1).hours.do(daily_analysis)
+
 def run_schedule():
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(60)
 
-schedule.every(1).hours.do(daily_analysis)
 threading.Thread(target=run_schedule, daemon=True).start()
 
 # Endpoint chính
@@ -272,9 +268,11 @@ threading.Thread(target=run_schedule, daemon=True).start()
 def index():
     return render_template('index.html', analysis_results=analysis_cache["results"],
                           BREAKOUT_STATUS=analysis_cache["breakout_status"],
-                          last_updated=analysis_cache["last_updated"])
+                          last_updated=analysis_cache["last_updated"],
+                          news_cache=news_cache,
+                          vapid_public_key=VAPID_PUBLIC_KEY)
 
-# Endpoint phân tích thủ công
+# Endpoint phân tích
 @app.route('/analyze', methods=['GET'])
 def analyze():
     daily_analysis()
@@ -301,7 +299,7 @@ def remove_coin():
     daily_analysis()
     return jsonify({"status": "success", "message": f"Đã xóa {symbol} khỏi danh sách theo dõi!"})
 
-# Endpoint lấy giá hiện tại
+# Endpoint giá hiện tại
 @app.route('/get_prices', methods=['GET'])
 def get_prices():
     prices = {}
@@ -310,11 +308,10 @@ def get_prices():
             df = tv.get_hist(symbol=coin["symbol"], exchange=coin["exchange"], interval=Interval.in_1_minute, n_bars=1)
             prices[coin["symbol"]] = df['close'].iloc[-1]
         except Exception as e:
-            logging.error(f"Error fetching price for {coin['symbol']}: {str(e)}")
             prices[coin["symbol"]] = None
     return jsonify(prices)
 
-# Endpoint lấy biến động 24h
+# Endpoint biến động 24h
 @app.route('/get_price_change_24h', methods=['GET'])
 def get_price_change_24h():
     changes = {}
@@ -324,28 +321,35 @@ def get_price_change_24h():
             price_change = ((df['close'].iloc[-1] - df['close'].iloc[0]) / df['close'].iloc[0]) * 100
             changes[coin["symbol"]] = price_change
         except Exception as e:
-            logging.error(f"Error fetching 24h change for {coin['symbol']}: {str(e)}")
             changes[coin["symbol"]] = None
     return jsonify(changes)
 
-# Endpoint lấy tin tức
+# Endpoint tin tức
 @app.route('/news/<category>', methods=['GET'])
 def get_news(category):
-    if category == "crypto":
-        news = []
-        for source, url in RSS_FEEDS["crypto"].items():
-            articles = get_rss_articles(url)
-            news.extend(articles)
-        return jsonify(news[:15])  # Giới hạn 15 tin
-    elif category == "economics":
-        articles = get_newsapi_articles("bloomberg,reuters")
-        return jsonify(articles)
-    elif category == "sports":
-        return jsonify([])  # Chưa có nguồn, trả về rỗng
-    else:
-        logging.warning(f"Unknown category requested: {category}")
-        return jsonify([])
+    if category in news_cache and news_cache[category]:
+        return jsonify(news_cache[category])
+    return jsonify([])
+
+# Endpoint gửi thông báo đẩy
+@app.route('/push', methods=['POST'])
+def send_push():
+    data = request.get_json()
+    subscription = data['subscription']
+    message = data['message']
+    try:
+        webpush(
+            subscription_info=subscription,
+            data=json.dumps({"title": "BOT Trading", "body": message}),
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims=VAPID_CLAIMS
+        )
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logging.error(f"Push error: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)})
 
 if __name__ == '__main__':
     daily_analysis()
+    fetch_news()
     app.run(debug=True)
