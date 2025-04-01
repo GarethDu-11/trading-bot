@@ -22,16 +22,17 @@
         .logo-container {
             display: inline-block;
             position: relative;
+            padding: 0 20px; /* Kéo dài thêm 20px mỗi bên */
         }
         #custom-logo {
-            max-height: 120px; /* Tăng kích thước logo */
+            max-height: 120px;
             display: none;
         }
         .logo-text {
-            display: inline; /* Mặc định hiển thị chữ */
+            display: inline;
         }
         .logo-text.hidden {
-            display: none; /* Ẩn chữ khi có logo */
+            display: none;
         }
         .logo-bot, .logo-trading {
             font-family: 'Orbitron', sans-serif;
@@ -57,11 +58,11 @@
         }
         .logo-container::before {
             top: -20px;
-            left: -20px;
+            left: 0;
         }
         .logo-container::after {
             bottom: -20px;
-            right: -20px;
+            right: 0;
         }
         @media (max-width: 768px) {
             .logo-bot, .logo-trading {
@@ -69,6 +70,9 @@
             }
             #custom-logo {
                 max-height: 80px;
+            }
+            .logo-container {
+                padding: 0 10px;
             }
             .logo-container::before, .logo-container::after {
                 font-size: 1em;
@@ -85,7 +89,7 @@
         .tab-header {
             display: flex;
             justify-content: center;
-            background-color: rgba(255, 255, 255, 0.8); /* Độ trong mờ cao hơn (80%) */
+            background-color: rgba(255, 255, 255, 0.8);
             border-radius: 8px 8px 0 0;
             padding: 10px 0 0;
         }
@@ -100,6 +104,8 @@
             cursor: pointer;
             background-color: #f1f1f1;
             transition: all 0.3s;
+            border-radius: 10px; /* Bo tròn cả khi không chọn */
+            margin: 0 5px;
         }
         .tab-item:hover {
             background-color: #e0e0e0;
@@ -107,11 +113,10 @@
         .tab-item.active {
             background-color: #32CD32;
             color: #FFFFFF;
-            border-radius: 10px;
         }
         .tab-content {
             padding: 15px;
-            background-color: rgba(255, 255, 255, 0.5); /* Độ trong mờ thấp hơn (50%) */
+            background-color: rgba(255, 255, 255, 0.5);
             border-radius: 0 0 8px 8px;
         }
         .tab-content-item {
@@ -124,6 +129,7 @@
             .tab-item {
                 padding: 8px 15px;
                 font-size: 14px;
+                margin: 0 3px;
             }
             .tab-content {
                 padding: 10px;
@@ -136,7 +142,7 @@
         }
         .sub-tab-header {
             display: inline-block;
-            background-color: rgba(255, 255, 255, 0.8); /* Độ trong mờ cao hơn */
+            background-color: rgba(255, 255, 255, 0.8);
             border-radius: 15px;
             overflow: hidden;
         }
@@ -151,6 +157,7 @@
             cursor: pointer;
             background-color: #f1f1f1;
             transition: all 0.3s;
+            border-radius: 15px;
         }
         .sub-tab-item:hover {
             background-color: #e0e0e0;
@@ -158,26 +165,10 @@
         .sub-tab-item.active {
             background-color: #32CD32;
             color: #FFFFFF;
-            border-radius: 15px;
-        }
-        .news-tabs {
-            margin-top: 10px;
-        }
-        .news-tab-item {
-            padding: 8px 16px;
-            cursor: pointer;
-            background-color: #f1f1f1;
-            margin: 5px;
-            display: inline-block;
-            border-radius: 10px;
-        }
-        .news-tab-item.active {
-            background-color: #32CD32;
-            color: #FFFFFF;
         }
         .news-content {
             padding: 10px;
-            background-color: rgba(255, 255, 255, 0.5); /* Độ trong mờ thấp hơn */
+            background-color: rgba(255, 255, 255, 0.5);
             border-radius: 8px;
         }
         .news-content-item {
@@ -187,7 +178,7 @@
             display: block;
         }
         @media (max-width: 768px) {
-            .sub-tab-item, .news-tab-item {
+            .sub-tab-item {
                 padding: 6px 12px;
                 font-size: 12px;
             }
@@ -265,7 +256,7 @@
         /* Phân tích hàng ngày */
         .daily-analysis {
             padding: 15px;
-            background-color: rgba(255, 255, 255, 0.5); /* Trong mờ 50% */
+            background-color: rgba(255, 255, 255, 0.5);
             border-radius: 8px;
         }
         .daily-analysis h2 {
@@ -452,9 +443,11 @@
                             {% set nearest_resistance = lines[2].split(', Kháng cự gần nhất: ')[1] if 'Hỗ trợ gần nhất' in lines[2] else 'N/A' %}
                             {% set strong_support = lines[3].split(': ')[1].split(', ')[0] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
                             {% set strong_resistance = lines[3].split(', Kháng cự mạnh: ')[1] if 'Hỗ trợ mạnh' in lines[3] else 'N/A' %}
-                            {% set pattern_4h = lines[4].split(': ')[1] if 'Mẫu nến 4H' in lines[4] else 'N/A' %}
-                            {% set pattern_1d = lines[5].split(': ')[1].split(' (')[0] if 'Mẫu hình giá 1D' in lines[5] else 'N/A' %}
-                            {% set similarity = lines[5].split('(')[1].split('%')[0] if 'Mẫu hình giá 1D' in lines[5] and '(' in lines[5] else '0' %}
+                            {% set pattern_1d = lines[4].split(': ')[1].split(' (')[0] if 'Mẫu hình giá 1D' in lines[4] else 'N/A' %}
+                            {% set vn_pattern = lines[4].split('(')[1].split(')')[0] if 'Mẫu hình giá 1D' in lines[4] else 'Không xác định' %}
+                            {% set similarity = lines[4].split('- ')[1].split('%')[0] if 'Mẫu hình giá 1D' in lines[4] else '0' %}
+                            {% set indicator = lines[4].split('với ')[1] if 'với' in lines[4] else 'N/A' %}
+                            {% set confirmation = lines[5].split(': ')[1] if 'Xác Nhận' in lines[5] else 'Không' %}
                             {% set confluence = lines[6].split(': ')[1] if 'Hợp lưu' in lines[6] else 'N/A' %}
                             {% set trend = lines[7].split(': ')[1] if 'Xu hướng chung' in lines[7] else 'N/A' %}
                             <div class="coin-box" data-coin="{{ coin }}">
@@ -484,8 +477,8 @@
                                     <p>Giá hiện tại: <span class="price-cell" data-coin="{{ coin }}">{{ price }}</span></p>
                                     <p>Hỗ trợ: <span class="support">{{ nearest_support }}</span> <span class="separator"> | </span> <span class="support">{{ strong_support }}</span></p>
                                     <p>Kháng cự: <span class="resistance">{{ nearest_resistance }}</span> <span class="separator"> | </span> <span class="resistance">{{ strong_resistance }}</span></p>
-                                    <p>Mẫu nến 4H: {{ pattern_4h }}</p>
-                                    <p>Mẫu hình giá 1D: {{ pattern_1d }} ({{ similarity }}% tương đồng)</p>
+                                    <p>Mẫu hình giá 1D: {{ pattern_1d }} ({{ vn_pattern }}) - {{ similarity }}% tương đồng với {{ indicator }}</p>
+                                    <p>Xác Nhận: {{ confirmation }}</p>
                                     <p>Hợp lưu: {{ confluence }}</p>
                                     <p>Xu hướng chung: 
                                         {% if 'tăng' in trend.lower() %}
@@ -518,15 +511,12 @@
                     </div>
                     <div class="sub-tab-content">
                         <div class="sub-tab-content-item active" id="crypto-tab">
-                            <div class="news-tabs" id="crypto-news-tabs"></div>
                             <div class="news-content" id="crypto-news-content"></div>
                         </div>
                         <div class="sub-tab-content-item" id="economics-tab">
-                            <div class="news-tabs" id="economics-news-tabs"></div>
                             <div class="news-content" id="economics-news-content"></div>
                         </div>
                         <div class="sub-tab-content-item" id="sports-tab">
-                            <div class="news-tabs" id="sports-news-tabs"></div>
                             <div class="news-content" id="sports-news-content"></div>
                         </div>
                     </div>
@@ -826,32 +816,17 @@
             fetch(`/news/${category}`)
                 .then(response => response.json())
                 .then(data => {
-                    const tabsContainer = document.getElementById(`${category}-news-tabs`);
                     const contentContainer = document.getElementById(`${category}-news-content`);
-                    tabsContainer.innerHTML = '';
                     contentContainer.innerHTML = '';
 
                     if (data.length === 0) {
                         contentContainer.innerHTML = '<p>Chưa có tin tức để hiển thị.</p>';
                     } else {
-                        data.forEach((article, index) => {
-                            const tab = document.createElement('div');
-                            tab.className = `news-tab-item ${index === 0 ? 'active' : ''}`;
-                            tab.textContent = article.title;
-                            tab.dataset.index = index;
-                            tabsContainer.appendChild(tab);
-
+                        data.forEach(article => {
                             const content = document.createElement('div');
-                            content.className = `news-content-item ${index === 0 ? 'active' : ''}`;
-                            content.innerHTML = `<p>${article.summary}</p><a href="${article.url}" target="_blank">Xem bài gốc</a>`;
+                            content.className = 'news-content-item active';
+                            content.innerHTML = `<h3>${article.title}</h3><p>${article.summary}</p><a href="${article.url}" target="_blank">Xem bài gốc</a>`;
                             contentContainer.appendChild(content);
-
-                            tab.addEventListener('click', () => {
-                                tabsContainer.querySelectorAll('.news-tab-item').forEach(t => t.classList.remove('active'));
-                                contentContainer.querySelectorAll('.news-content-item').forEach(c => c.classList.remove('active'));
-                                tab.classList.add('active');
-                                contentContainer.children[index].classList.add('active');
-                            });
                         });
                     }
                 })

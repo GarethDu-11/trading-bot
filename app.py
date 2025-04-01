@@ -29,7 +29,7 @@ tv = TvDatafeed()
 # API Key cho NewsAPI
 NEWS_API_KEY = "e8dea5c6f2894640ba6676a7d7b37943"
 
-# VAPID Keys (Đã chuyển đổi từ PEM sang base64 URL-safe)
+# VAPID Keys
 VAPID_PUBLIC_KEY = "BCZw7Kj8eL3mK5pXzJ9b8fQ7kZ2mXz5n8g9jQw8fK5vL8mN7pXzJ9b8fQ7kZ2mXz5n8g9jQw8fK5vL8mN7pXzJ9b8"
 VAPID_PRIVATE_KEY = "RPnOralZzMuZ8nA9TTsw08a7WzTWXx_iJ6ubxYgoqy0"
 VAPID_CLAIMS = {"sub": "mailto:csgtdu@gmail.com"}
@@ -100,7 +100,7 @@ def detect_candlestick_pattern(df):
     else:
         return "N/A"
 
-# Hàm nhận diện mẫu hình giá
+# Hàm nhận diện mẫu hình giá với chỉ số RSI
 def detect_price_pattern(df):
     maxima = argrelextrema(df['high'].values, np.greater, order=5)[0]
     minima = argrelextrema(df['low'].values, np.less, order=5)[0]
@@ -108,7 +108,7 @@ def detect_price_pattern(df):
     lows = df['low'].iloc[minima].tolist()
 
     if len(highs) < 2 or len(lows) < 2:
-        return "N/A", 0, "Không xác định"
+        return "N/A", 0, "Không xác định", "N/A"
 
     high_diff = abs(highs[-1] - highs[-2]) / highs[-1] if len(highs) >= 2 else 0
     low_diff = abs(lows[-1] - lows[-2]) / lows[-1] if len(lows) >= 2 else 0
@@ -120,14 +120,22 @@ def detect_price_pattern(df):
     ml_prediction = ml_model.predict(features_scaled)[0]
     ml_confidence = max(ml_model.predict_proba(features_scaled)[0]) * 100
 
+    # Tính RSI đơn giản
+    delta = df['close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    rsi_value = rsi.iloc[-1] if not pd.isna(rsi.iloc[-1]) else 50
+
     patterns = {
         "Double Top": (len(highs) >= 2 and abs(highs[-1] - highs[-2]) / highs[-1] < 0.02, "Đỉnh Đôi"),
         "Double Bottom": (len(lows) >= 2 and abs(lows[-1] - lows[-2]) / lows[-1] < 0.02, "Đáy Đôi"),
     }
     for pattern, (condition, vn_name) in patterns.items():
         if condition:
-            return pattern, 90, vn_name
-    return ml_prediction, ml_confidence, "Không xác định"
+            return pattern, 90, vn_name, f"RSI: {rsi_value:.2f}"
+    return ml_prediction, ml_confidence, "Không xác định", f"RSI: {rsi_value:.2f}"
 
 # Hàm xác định xu hướng
 def determine_trend(df):
@@ -185,15 +193,22 @@ def daily_analysis():
                 breakout_status[symbol]["message"] = f"CẢNH BÁO: {symbol} đã phá vỡ vùng kháng cự {nearest_resistance}!"
 
             candlestick_pattern = detect_candlestick_pattern(df_4h)
-            price_pattern, similarity, vn_pattern = detect_price_pattern(df_daily)
+            price_pattern, similarity, vn_pattern, indicator = detect_price_pattern(df_daily)
             trend = determine_trend(df_daily)
+
+            # Xác nhận mẫu hình giá bằng mẫu nến 4H
+            confirmation = "Không"
+            if price_pattern == "Double Bottom" and candlestick_pattern in ["Hammer", "Doji"]:
+                confirmation = "Có"
+            elif price_pattern == "Double Top" and candlestick_pattern in ["Shooting Star", "Doji"]:
+                confirmation = "Có"
 
             result = (f"{symbol}:\n"
                       f"Giá hiện tại: {current_price:.2f}\n"
                       f"Hỗ trợ gần nhất: {nearest_support}, Kháng cự gần nhất: {nearest_resistance}\n"
                       f"Hỗ trợ mạnh: {strong_support}, Kháng cự mạnh: {strong_resistance}\n"
-                      f"Mẫu nến 4H: {candlestick_pattern}\n"
-                      f"Mẫu hình giá 1D: {price_pattern} ({vn_pattern}) - {similarity:.0f}%\n"
+                      f"Mẫu hình giá 1D: {price_pattern} ({vn_pattern}) - {similarity:.0f}% tương đồng với {indicator}\n"
+                      f"Xác Nhận: {confirmation}\n"
                       f"Hợp lưu: N/A\n"
                       f"Xu hướng chung: {trend}\n")
             results.append(result)
@@ -229,31 +244,39 @@ def fetch_news():
     for source, url in RSS_FEEDS["crypto"].items():
         try:
             feed = feedparser.parse(url)
-            for entry in feed.entries[:5]:
-                summary = summarize_article(entry.link)
-                news["crypto"].append({
-                    "title": entry.title,
-                    "url": entry.link,
-                    "summary": summary
-                })
+            if feed.entries:
+                for entry in feed.entries[:5]:
+                    summary = summarize_article(entry.link)
+                    news["crypto"].append({
+                        "title": entry.title,
+                        "url": entry.link,
+                        "summary": summary
+                    })
+            else:
+                news["crypto"].append({"title": f"Không có tin tức từ {source}", "url": "#", "summary": "N/A"})
         except Exception as e:
             logging.error(f"Error parsing RSS {source}: {str(e)}")
+            news["crypto"].append({"title": f"Lỗi tải tin tức từ {source}", "url": "#", "summary": str(e)})
 
     url = f"https://newsapi.org/v2/top-headlines?category=business&language=en&apiKey={NEWS_API_KEY}"
     try:
         response = requests.get(url)
         data = response.json()
-        for article in data["articles"][:5]:
-            summary = summarize_article(article["url"])
-            news["economics"].append({
-                "title": article["title"],
-                "url": article["url"],
-                "summary": summary
-            })
+        if data["status"] == "ok" and data["articles"]:
+            for article in data["articles"][:5]:
+                summary = summarize_article(article["url"])
+                news["economics"].append({
+                    "title": article["title"],
+                    "url": article["url"],
+                    "summary": summary
+                })
+        else:
+            news["economics"].append({"title": "Không có tin tức kinh tế", "url": "#", "summary": "N/A"})
     except Exception as e:
         logging.error(f"Error fetching NewsAPI economics: {str(e)}")
+        news["economics"].append({"title": "Lỗi tải tin tức kinh tế", "url": "#", "summary": str(e)})
 
-    news["sports"] = [{"title": "Chưa có tin tức", "url": "#", "summary": "Chưa có dữ liệu."}]
+    news["sports"] = [{"title": "Chưa hỗ trợ tin tức thể thao", "url": "#", "summary": "Chưa có dữ liệu."}]
 
     news_cache = {
         "crypto": news["crypto"],
@@ -340,7 +363,8 @@ def get_price_change_24h():
 def get_news(category):
     if category in news_cache and news_cache[category]:
         return jsonify(news_cache[category])
-    return jsonify([])
+    fetch_news()  # Gọi lại nếu cache rỗng
+    return jsonify(news_cache.get(category, []))
 
 # Endpoint gửi thông báo đẩy
 @app.route('/push', methods=['POST'])
