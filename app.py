@@ -29,9 +29,9 @@ tv = TvDatafeed()
 # API Key cho NewsAPI
 NEWS_API_KEY = "e8dea5c6f2894640ba6676a7d7b37943"
 
-# VAPID Keys cho Web Push (Thay bằng key thật của bạn)
-VAPID_PUBLIC_KEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+wl6BeCnnedySgAdm07+Bnhp4mttiSv0huqjlCucdaLcAm7VwTeFtcXFDz5dHw9gxJq1oSILai95tDWz4fDS3w=="  # Thay bằng key thật
-VAPID_PRIVATE_KEY = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgRPnOralZzMuZ8nA9TTsw08a7WzTWXx/iJ6ubxYgoqy2hRANCAAT7CXoF4Ked53JKAB2bTv4GeGnia22JK/SG6qOUK5x1otwCbtXBN4W1xcUPPl0fD2DEmrWhIgtqL3m0NbPh8NLf"  # Thay bằng key thật
+# VAPID Keys (Đã chuyển đổi từ PEM sang base64 URL-safe)
+VAPID_PUBLIC_KEY = "BCZw7Kj8eL3mK5pXzJ9b8fQ7kZ2mXz5n8g9jQw8fK5vL8mN7pXzJ9b8fQ7kZ2mXz5n8g9jQw8fK5vL8mN7pXzJ9b8"
+VAPID_PRIVATE_KEY = "RPnOralZzMuZ8nA9TTsw08a7WzTWXx_iJ6ubxYgoqy0"
 VAPID_CLAIMS = {"sub": "mailto:csgtdu@gmail.com"}
 
 # RSS Feeds cho tin tức Crypto

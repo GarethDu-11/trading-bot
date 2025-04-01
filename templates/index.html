@@ -23,6 +23,16 @@
             display: inline-block;
             position: relative;
         }
+        #custom-logo {
+            max-height: 120px; /* Tăng kích thước logo */
+            display: none;
+        }
+        .logo-text {
+            display: inline; /* Mặc định hiển thị chữ */
+        }
+        .logo-text.hidden {
+            display: none; /* Ẩn chữ khi có logo */
+        }
         .logo-bot, .logo-trading {
             font-family: 'Orbitron', sans-serif;
             font-weight: 700;
@@ -57,6 +67,9 @@
             .logo-bot, .logo-trading {
                 font-size: 2em;
             }
+            #custom-logo {
+                max-height: 80px;
+            }
             .logo-container::before, .logo-container::after {
                 font-size: 1em;
             }
@@ -66,14 +79,13 @@
         .tab-section {
             margin: 0 auto;
             max-width: 1200px;
-            background-color: #FFFFFF;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .tab-header {
             display: flex;
             justify-content: center;
-            background-color: #FFFFFF;
+            background-color: rgba(255, 255, 255, 0.8); /* Độ trong mờ cao hơn (80%) */
             border-radius: 8px 8px 0 0;
             padding: 10px 0 0;
         }
@@ -99,7 +111,7 @@
         }
         .tab-content {
             padding: 15px;
-            background-color: #FFFFFF;
+            background-color: rgba(255, 255, 255, 0.5); /* Độ trong mờ thấp hơn (50%) */
             border-radius: 0 0 8px 8px;
         }
         .tab-content-item {
@@ -124,7 +136,7 @@
         }
         .sub-tab-header {
             display: inline-block;
-            background-color: #FFFFFF;
+            background-color: rgba(255, 255, 255, 0.8); /* Độ trong mờ cao hơn */
             border-radius: 15px;
             overflow: hidden;
         }
@@ -165,7 +177,7 @@
         }
         .news-content {
             padding: 10px;
-            background-color: #FFFFFF;
+            background-color: rgba(255, 255, 255, 0.5); /* Độ trong mờ thấp hơn */
             border-radius: 8px;
         }
         .news-content-item {
@@ -253,7 +265,7 @@
         /* Phân tích hàng ngày */
         .daily-analysis {
             padding: 15px;
-            background-color: #FFFFFF;
+            background-color: rgba(255, 255, 255, 0.5); /* Trong mờ 50% */
             border-radius: 8px;
         }
         .daily-analysis h2 {
@@ -411,9 +423,8 @@
 <body>
     <div class="header-logo">
         <div class="logo-container">
-            <img id="custom-logo" src="/static/uploads/custom_logo.png" alt="Custom Logo" style="max-height: 80px; display: none;" onerror="this.style.display='none';">
-            <span class="logo-bot">BOT</span>
-            <span class="logo-trading">TRADING</span>
+            <img id="custom-logo" src="/static/uploads/custom_logo.png" alt="Custom Logo" onerror="this.style.display='none';">
+            <span class="logo-text"><span class="logo-bot">BOT</span><span class="logo-trading">TRADING</span></span>
         </div>
     </div>
 
@@ -856,11 +867,21 @@
             fetchNews('sports', 'sports-news');
 
             const logoImg = document.getElementById('custom-logo');
+            const logoText = document.querySelector('.logo-text');
             fetch('/static/uploads/custom_logo.png')
                 .then(response => {
-                    if (response.ok) logoImg.style.display = 'block';
+                    if (response.ok) {
+                        logoImg.style.display = 'block';
+                        logoText.classList.add('hidden');
+                    } else {
+                        logoImg.style.display = 'none';
+                        logoText.classList.remove('hidden');
+                    }
                 })
-                .catch(() => logoImg.style.display = 'none');
+                .catch(() => {
+                    logoImg.style.display = 'none';
+                    logoText.classList.remove('hidden');
+                });
         });
 
         document.getElementById('uploadLogoForm').addEventListener('submit', function(e) {
@@ -875,8 +896,10 @@
                 alert(data.message);
                 if (data.status === 'success') {
                     const logoImg = document.getElementById('custom-logo');
+                    const logoText = document.querySelector('.logo-text');
                     logoImg.src = '/static/uploads/custom_logo.png?' + new Date().getTime();
                     logoImg.style.display = 'block';
+                    logoText.classList.add('hidden');
                 }
             })
             .catch(error => console.error('Error uploading logo:', error));
