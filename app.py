@@ -34,7 +34,7 @@ VAPID_PUBLIC_KEY = "BCZw7Kj8eL3mK5pXzJ9b8fQ7kZ2mXz5n8g9jQw8fK5vL8mN7pXzJ9b8fQ7kZ
 VAPID_PRIVATE_KEY = "RPnOralZzMuZ8nA9TTsw08a7WzTWXx_iJ6ubxYgoqy0"
 VAPID_CLAIMS = {"sub": "mailto:csgtdu@gmail.com"}
 
-# RSS Feeds chỉ cho Crypto
+# RSS Feeds cho tin tức Crypto
 RSS_FEEDS = {
     "crypto": {
         "CoinDesk": "https://www.coindesk.com/feed",
@@ -52,7 +52,7 @@ default_coins = [
 ]
 tracked_coins = default_coins.copy()
 analysis_cache = {"results": [], "breakout_status": {}, "last_updated": None}
-news_cache = {"crypto": [], "economics": [], "last_updated": None}
+news_cache = {"crypto": [], "economics": [], "sports": [], "last_updated": None}
 
 # Thư mục lưu logo
 UPLOAD_FOLDER = 'static/uploads'
@@ -100,7 +100,7 @@ def detect_candlestick_pattern(df):
     else:
         return "N/A"
 
-# Hàm nhận diện mẫu hình giá với RSI
+# Hàm nhận diện mẫu hình giá với chỉ số RSI
 def detect_price_pattern(df):
     maxima = argrelextrema(df['high'].values, np.greater, order=5)[0]
     minima = argrelextrema(df['low'].values, np.less, order=5)[0]
@@ -120,7 +120,7 @@ def detect_price_pattern(df):
     ml_prediction = ml_model.predict(features_scaled)[0]
     ml_confidence = max(ml_model.predict_proba(features_scaled)[0]) * 100
 
-    # Tính RSI
+    # Tính RSI đơn giản
     delta = df['close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
@@ -196,6 +196,7 @@ def daily_analysis():
             price_pattern, similarity, vn_pattern, indicator = detect_price_pattern(df_daily)
             trend = determine_trend(df_daily)
 
+            # Xác nhận mẫu hình giá bằng mẫu nến 4H
             confirmation = "Không"
             if price_pattern == "Double Bottom" and candlestick_pattern in ["Hammer", "Doji"]:
                 confirmation = "Có"
@@ -238,7 +239,7 @@ def summarize_article(url):
 # Hàm lấy tin tức
 def fetch_news():
     global news_cache
-    news = {"crypto": [], "economics": []}
+    news = {"crypto": [], "economics": [], "sports": []}
     
     for source, url in RSS_FEEDS["crypto"].items():
         try:
@@ -275,9 +276,12 @@ def fetch_news():
         logging.error(f"Error fetching NewsAPI economics: {str(e)}")
         news["economics"].append({"title": "Lỗi tải tin tức kinh tế", "url": "#", "summary": str(e)})
 
+    news["sports"] = [{"title": "Chưa hỗ trợ tin tức thể thao", "url": "#", "summary": "Chưa có dữ liệu."}]
+
     news_cache = {
         "crypto": news["crypto"],
         "economics": news["economics"],
+        "sports": news["sports"],
         "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
@@ -359,7 +363,7 @@ def get_price_change_24h():
 def get_news(category):
     if category in news_cache and news_cache[category]:
         return jsonify(news_cache[category])
-    fetch_news()
+    fetch_news()  # Gọi lại nếu cache rỗng
     return jsonify(news_cache.get(category, []))
 
 # Endpoint gửi thông báo đẩy

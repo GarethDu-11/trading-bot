@@ -22,13 +22,11 @@
         .logo-container {
             display: inline-block;
             position: relative;
-            min-width: 360px; /* Bằng tổng chiều rộng 3 tab */
-            text-align: center;
+            padding: 0 20px; /* Kéo dài thêm 20px mỗi bên */
         }
         #custom-logo {
             max-height: 120px;
             display: none;
-            width: 100%;
         }
         .logo-text {
             display: inline;
@@ -67,14 +65,17 @@
             right: 0;
         }
         @media (max-width: 768px) {
-            .logo-container {
-                min-width: 240px;
-            }
             .logo-bot, .logo-trading {
                 font-size: 2em;
             }
             #custom-logo {
                 max-height: 80px;
+            }
+            .logo-container {
+                padding: 0 10px;
+            }
+            .logo-container::before, .logo-container::after {
+                font-size: 1em;
             }
         }
 
@@ -86,7 +87,6 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .tab-header {
-            position: relative;
             display: flex;
             justify-content: center;
             background-color: rgba(255, 255, 255, 0.8);
@@ -98,35 +98,21 @@
             display: flex;
             margin: 0;
             padding: 0;
-            position: relative;
         }
         .tab-item {
             padding: 10px 20px;
             cursor: pointer;
             background-color: #f1f1f1;
-            transition: color 0.3s;
-            border-radius: 10px;
+            transition: all 0.3s;
+            border-radius: 10px; /* Bo tròn cả khi không chọn */
             margin: 0 5px;
-            width: 100px;
-            text-align: center;
-            position: relative;
-            z-index: 1;
         }
         .tab-item:hover {
             background-color: #e0e0e0;
         }
         .tab-item.active {
-            background-color: transparent;
-            color: #32CD32;
-        }
-        .tab-items::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            height: 3px;
             background-color: #32CD32;
-            transition: all 0.3s ease;
-            z-index: 0;
+            color: #FFFFFF;
         }
         .tab-content {
             padding: 15px;
@@ -143,7 +129,10 @@
             .tab-item {
                 padding: 8px 15px;
                 font-size: 14px;
-                width: 80px;
+                margin: 0 3px;
+            }
+            .tab-content {
+                padding: 10px;
             }
         }
 
@@ -184,7 +173,6 @@
         }
         .news-content-item {
             display: none;
-            margin-bottom: 10px;
         }
         .news-content-item.active {
             display: block;
@@ -193,6 +181,9 @@
             .sub-tab-item {
                 padding: 6px 12px;
                 font-size: 12px;
+            }
+            .news-content {
+                padding: 8px;
             }
         }
 
@@ -319,7 +310,11 @@
                 font-size: 1.2em;
             }
             .notification-btn, .refresh-btn {
+                margin-left: 5px;
                 padding: 4px 8px;
+                font-size: 12px;
+            }
+            .last-updated {
                 font-size: 12px;
             }
         }
@@ -409,6 +404,10 @@
             .coin-box p { font-size: 12px; }
             .remove-coin { top: 5px; right: 5px; padding: 1px 4px; font-size: 0.7em; }
             .breakout-dot { top: 5px; right: 30px; width: 8px; height: 8px; }
+            .breakout-message { font-size: 12px; }
+            .price-cell { margin-left: 5px; font-size: 0.9em; }
+            .change-24h { margin-left: 5px; font-size: 0.9em; }
+            .coin-icon { width: 16px; height: 16px; }
         }
     </style>
 </head>
@@ -507,6 +506,7 @@
                         <ul class="sub-tab-items">
                             <li class="sub-tab-item active" data-sub-tab="crypto">Crypto</li>
                             <li class="sub-tab-item" data-sub-tab="economics">Kinh tế</li>
+                            <li class="sub-tab-item" data-sub-tab="sports">Thể thao</li>
                         </ul>
                     </div>
                     <div class="sub-tab-content">
@@ -515,6 +515,9 @@
                         </div>
                         <div class="sub-tab-content-item" id="economics-tab">
                             <div class="news-content" id="economics-news-content"></div>
+                        </div>
+                        <div class="sub-tab-content-item" id="sports-tab">
+                            <div class="news-content" id="sports-news-content"></div>
                         </div>
                     </div>
                 </div>
@@ -557,23 +560,14 @@
         const tabItems = document.querySelectorAll('.tab-item');
         const tabContentItems = document.querySelectorAll('.tab-content-item');
 
-        function updateTabUnderline(activeTab) {
-            const width = activeTab.offsetWidth;
-            const left = activeTab.offsetLeft;
-            document.querySelector('.tab-items::after').style.width = `${width}px`;
-            document.querySelector('.tab-items::after').style.left = `${left}px`;
-        }
-
         tabItems[0].classList.add('active');
         tabContentItems[0].classList.add('active');
-        updateTabUnderline(tabItems[0]);
 
         tabItems.forEach((item, index) => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 tabItems.forEach(el => el.classList.remove('active'));
                 item.classList.add('active');
-                updateTabUnderline(item);
                 tabContentItems.forEach((contentItem, contentIndex) => {
                     contentItem.classList.toggle('active', contentIndex === index);
                 });
@@ -845,6 +839,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             fetchNews('crypto', 'crypto-news');
             fetchNews('economics', 'economics-news');
+            fetchNews('sports', 'sports-news');
 
             const logoImg = document.getElementById('custom-logo');
             const logoText = document.querySelector('.logo-text');
@@ -897,4 +892,4 @@
         }
     </script>
 </body>
-</html
+</html>
