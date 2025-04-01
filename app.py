@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, request, jsonify
+﻿from flask import Flask, render_template, request, jsonify, send_from_directory
 import pandas as pd
 import numpy as np
 from tvDatafeed import TvDatafeed, Interval
@@ -15,6 +15,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from pywebpush import webpush
 import json
+import os
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -27,9 +29,12 @@ tv = TvDatafeed()
 # API Key cho NewsAPI
 NEWS_API_KEY = "e8dea5c6f2894640ba6676a7d7b37943"
 
-# VAPID Keys cho Web Push
-VAPID_PUBLIC_KEY = "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFK3dsNkJlQ25uZWR5U2dBZG0wNytCbmhwNG10dAppU3YwaHVxamxDdWNkYUxjQW03VndUZUZ0Y1hGRHo1ZEh3OWd4SnExb1NJTGFpOTV0RFd6NGZEUzN3PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg"  # Thay bằng key thật
-VAPID_PRIVATE_KEY = "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZ1JQbk9yYWxaek11WjhuQTkKVFRzdzA4YTdXelRXWHgvaUo2dWJ4WWdvcXkyaFJBTkNBQVQ3Q1hvRjRLZWQ1M0pLQUIyYlR2NEdlR25pYTIySgpLL1NHNnFPVUs1eDFvdHdDYnRYQk40VzF4Y1VQUGwwZkQyREVtcldoSWd0cUwzbTBOYlBoOE5MZgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg"  # Thay bằng key thật
+# VAPID Keys cho Web Push (Thay bằng key thật của bạn)
+VAPID_PUBLIC_KEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+wl6BeCnnedySgAdm07+Bnhp4mtt
+iSv0huqjlCucdaLcAm7VwTeFtcXFDz5dHw9gxJq1oSILai95tDWz4fDS3w=="  # Thay bằng key thật
+VAPID_PRIVATE_KEY = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgRPnOralZzMuZ8nA9
+TTsw08a7WzTWXx/iJ6ubxYgoqy2hRANCAAT7CXoF4Ked53JKAB2bTv4GeGnia22J
+K/SG6qOUK5x1otwCbtXBN4W1xcUPPl0fD2DEmrWhIgtqL3m0NbPh8NLf"  # Thay bằng key thật
 VAPID_CLAIMS = {"sub": "mailto:csgtdu@gmail.com"}
 
 # RSS Feeds cho tin tức Crypto
@@ -51,6 +56,14 @@ default_coins = [
 tracked_coins = default_coins.copy()
 analysis_cache = {"results": [], "breakout_status": {}, "last_updated": None}
 news_cache = {"crypto": [], "economics": [], "sports": [], "last_updated": None}
+
+# Thư mục lưu logo
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Huấn luyện mô hình Machine Learning
 def train_price_pattern_model():
@@ -270,7 +283,8 @@ def index():
                           BREAKOUT_STATUS=analysis_cache["breakout_status"],
                           last_updated=analysis_cache["last_updated"],
                           news_cache=news_cache,
-                          vapid_public_key=VAPID_PUBLIC_KEY)
+                          vapid_public_key=VAPID_PUBLIC_KEY,
+                          tracked_coins=tracked_coins)
 
 # Endpoint phân tích
 @app.route('/analyze', methods=['GET'])
@@ -338,18 +352,40 @@ def send_push():
     subscription = data['subscription']
     message = data['message']
     try:
+        logging.info(f"Sending push to {subscription['endpoint']}")
         webpush(
             subscription_info=subscription,
             data=json.dumps({"title": "BOT Trading", "body": message}),
             vapid_private_key=VAPID_PRIVATE_KEY,
             vapid_claims=VAPID_CLAIMS
         )
+        logging.info("Push sent successfully")
         return jsonify({"status": "success"})
     except Exception as e:
         logging.error(f"Push error: {str(e)}")
         return jsonify({"status": "error", "message": str(e)})
 
+# Endpoint upload logo
+@app.route('/upload_logo', methods=['POST'])
+def upload_logo():
+    if 'logo' not in request.files:
+        return jsonify({"status": "error", "message": "Không có file được tải lên!"})
+    file = request.files['logo']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "Chưa chọn file!"})
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'custom_logo.png'))
+        return jsonify({"status": "success", "message": "Logo đã được tải lên!"})
+    return jsonify({"status": "error", "message": "File không hợp lệ!"})
+
+# Phục vụ Service Worker
+@app.route('/sw.js')
+def serve_sw():
+    return send_from_directory('static', 'sw.js')
+
 if __name__ == '__main__':
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     daily_analysis()
     fetch_news()
     app.run(debug=True)
