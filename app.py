@@ -30,11 +30,8 @@ tv = TvDatafeed()
 NEWS_API_KEY = "e8dea5c6f2894640ba6676a7d7b37943"
 
 # VAPID Keys cho Web Push (Thay bằng key thật của bạn)
-VAPID_PUBLIC_KEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+wl6BeCnnedySgAdm07+Bnhp4mtt
-iSv0huqjlCucdaLcAm7VwTeFtcXFDz5dHw9gxJq1oSILai95tDWz4fDS3w=="  # Thay bằng key thật
-VAPID_PRIVATE_KEY = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgRPnOralZzMuZ8nA9
-TTsw08a7WzTWXx/iJ6ubxYgoqy2hRANCAAT7CXoF4Ked53JKAB2bTv4GeGnia22J
-K/SG6qOUK5x1otwCbtXBN4W1xcUPPl0fD2DEmrWhIgtqL3m0NbPh8NLf"  # Thay bằng key thật
+VAPID_PUBLIC_KEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+wl6BeCnnedySgAdm07+Bnhp4mttiSv0huqjlCucdaLcAm7VwTeFtcXFDz5dHw9gxJq1oSILai95tDWz4fDS3w=="  # Thay bằng key thật
+VAPID_PRIVATE_KEY = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgRPnOralZzMuZ8nA9TTsw08a7WzTWXx/iJ6ubxYgoqy2hRANCAAT7CXoF4Ked53JKAB2bTv4GeGnia22JK/SG6qOUK5x1otwCbtXBN4W1xcUPPl0fD2DEmrWhIgtqL3m0NbPh8NLf"  # Thay bằng key thật
 VAPID_CLAIMS = {"sub": "mailto:csgtdu@gmail.com"}
 
 # RSS Feeds cho tin tức Crypto
